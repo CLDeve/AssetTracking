@@ -1,0 +1,237 @@
+:root {
+  --ink: #111418;
+  --muted: #5f6772;
+  --highlight: #f3c969;
+  --accent: #2a66f1;
+  --card: #ffffff;
+  --shadow: 0 24px 45px rgba(15, 21, 35, 0.12);
+  --border: rgba(17, 20, 24, 0.12);
+  --bg-start: #f6f3ea;
+  --bg-end: #ece9ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top, var(--bg-start), var(--bg-end));
+  min-height: 100vh;
+}
+
+.dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 20px 60px;
+  display: grid;
+  gap: 32px;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-size: clamp(2.4rem, 3.5vw, 3.4rem);
+  margin: 0 0 12px;
+}
+
+.subtitle {
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.summary {
+  display: flex;
+  gap: 16px;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 24px;
+  box-shadow: var(--shadow);
+  min-width: 120px;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.summary-value {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-size: 2rem;
+  margin: 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.asset-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px;
+  text-align: left;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: grid;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.asset-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 0.2s ease;
+}
+
+.asset-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 50px rgba(15, 21, 35, 0.18);
+}
+
+.asset-card h2 {
+  margin: 0;
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-size: 1.4rem;
+}
+
+.asset-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.asset-icon {
+  font-size: 1.9rem;
+}
+
+.status-pill {
+  background: rgba(42, 102, 241, 0.12);
+  color: var(--accent);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.cta {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.asset-card.selected {
+  background: linear-gradient(140deg, #fff7db, #ffffff 55%);
+  border-color: rgba(243, 201, 105, 0.6);
+}
+
+.asset-card.selected::after {
+  border-color: var(--highlight);
+}
+
+.selection-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+}
+
+.selection-panel h3 {
+  margin: 0 0 6px;
+  font-family: "Fraunces", "Times New Roman", serif;
+}
+
+.selection-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.selection-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.selection-tag {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary {
+    width: 100%;
+  }
+
+  .summary-card {
+    flex: 1;
+  }
+
+  .selection-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .selection-tags {
+    justify-content: flex-start;
+  }
+}

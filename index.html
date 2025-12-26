@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asset Tracking Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="dashboard">
+      <header class="hero">
+        <div>
+          <p class="kicker">Asset Tracking</p>
+          <h1>Choose assets to monitor</h1>
+          <p class="subtitle">
+            Tap a card to include it in the live watchlist. You can select
+            multiple assets.
+          </p>
+        </div>
+        <div class="summary">
+          <div class="summary-card">
+            <p class="summary-label">Selected</p>
+            <p class="summary-value" id="selectedCount">0</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">Available</p>
+            <p class="summary-value">3</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="card-grid" id="assetGrid">
+        <button class="asset-card" data-asset="Phone" type="button">
+          <div class="card-top">
+            <span class="asset-icon">📱</span>
+            <span class="status-pill">Ready</span>
+          </div>
+          <h2>Phone</h2>
+          <p>Field-issued smartphones with live GPS.</p>
+          <div class="card-footer">
+            <span>Signal: Strong</span>
+            <span class="cta">Select</span>
+          </div>
+        </button>
+
+        <button class="asset-card" data-asset="Tablet" type="button">
+          <div class="card-top">
+            <span class="asset-icon">📟</span>
+            <span class="status-pill">Ready</span>
+          </div>
+          <h2>Tablet</h2>
+          <p>Operations tablets used in control rooms.</p>
+          <div class="card-footer">
+            <span>Signal: Stable</span>
+            <span class="cta">Select</span>
+          </div>
+        </button>
+
+        <button class="asset-card" data-asset="Body Worn Camera" type="button">
+          <div class="card-top">
+            <span class="asset-icon">🎥</span>
+            <span class="status-pill">Ready</span>
+          </div>
+          <h2>Body Worn Camera</h2>
+          <p>Wearable cameras streaming on duty.</p>
+          <div class="card-footer">
+            <span>Signal: Clear</span>
+            <span class="cta">Select</span>
+          </div>
+        </button>
+      </section>
+
+      <section class="selection-panel" aria-live="polite">
+        <div>
+          <h3>Selection</h3>
+          <p id="selectionHint">No assets selected yet.</p>
+        </div>
+        <div class="selection-tags" id="selectionTags"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
