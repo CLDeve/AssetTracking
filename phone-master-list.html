@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Master List</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="phone.html">Back to Phone</a>
+        <a href="index.html">Dashboard</a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store hero-split">
+        <div>
+          <p class="hero-kicker">Phone master list</p>
+          <h1>Register a device</h1>
+          <p class="subtitle">
+            Capture the essential details for tracking and compliance.
+          </p>
+        </div>
+        <div class="bulk-upload-inline">
+          <input
+            class="bulk-file-input"
+            type="file"
+            accept=".csv"
+            id="bulkUploadInput"
+          />
+          <button class="secondary-button" type="button" id="bulkUploadButton">
+            Bulk upload
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            id="downloadTemplateButton"
+          >
+            Download template
+          </button>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <form class="asset-form" id="deviceForm">
+          <label>
+            <span>Device ID</span>
+            <input type="text" name="deviceId" placeholder="e.g. PH-1024" />
+          </label>
+
+          <label>
+            <span>IMEI number</span>
+            <input type="text" name="imei" placeholder="15-digit IMEI" />
+          </label>
+
+          <label>
+            <span>Device model</span>
+            <input type="text" name="deviceModel" placeholder="e.g. iPhone 14" />
+          </label>
+
+          <label>
+            <span>Telco</span>
+            <select name="telco">
+              <option value="">Select telco</option>
+              <option value="singtel">Singtel</option>
+              <option value="starhub">StarHub</option>
+              <option value="m1">M1</option>
+              <option value="circles">circles.life</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Telco contract number</span>
+            <input
+              type="text"
+              name="telcoContractNumber"
+              placeholder="e.g. SG-TEL-2048"
+            />
+          </label>
+
+          <label>
+            <span>Phone number</span>
+            <input type="tel" name="phoneNumber" placeholder="+65 9123 4567" />
+          </label>
+
+          <label>
+            <span>Contract start date</span>
+            <input type="date" name="contractStart" />
+          </label>
+
+          <label>
+            <span>Contract end date</span>
+            <input type="date" name="contractEnd" />
+          </label>
+
+          <label>
+            <span>Mobile Device Management</span>
+            <select name="mdm">
+              <option value="">Select MDM</option>
+              <option value="soti">SOTI</option>
+              <option value="knox">KNOX</option>
+            </select>
+          </label>
+
+          <label>
+            <span>MDM expiry date</span>
+            <input type="date" name="mdmExpiry" />
+          </label>
+
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">
+              Save device
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Registered devices</h2>
+            <p class="subtitle">Latest entries appear at the top.</p>
+          </div>
+          <div class="list-actions">
+            <input
+              class="search-input"
+              type="search"
+              id="deviceSearchInput"
+              placeholder="Search device ID or phone number..."
+            />
+            <button class="secondary-button" type="button" id="downloadCsvButton">
+              Download Excel
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>IMEI</th>
+                <th>Model</th>
+                <th>Telco</th>
+                <th>Telco contract</th>
+                <th>Phone</th>
+                <th>Contract start</th>
+                <th>Contract end</th>
+                <th>MDM</th>
+                <th>MDM expiry</th>
+              </tr>
+            </thead>
+            <tbody id="deviceTableBody">
+              <tr class="empty-row">
+                <td colspan="10">No devices registered yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+    <script>
+      const bulkUploadButton = document.getElementById("bulkUploadButton");
+      const bulkUploadInput = document.getElementById("bulkUploadInput");
+      const downloadTemplateButton = document.getElementById(
+        "downloadTemplateButton"
+      );
+      const deviceForm = document.getElementById("deviceForm");
+      const deviceTableBody = document.getElementById("deviceTableBody");
+      const deviceSearchInput = document.getElementById("deviceSearchInput");
+      const downloadCsvButton = document.getElementById("downloadCsvButton");
+      const storageKey = "assetTrackingPhones";
+      let devices = [];
+
+      bulkUploadButton.addEventListener("click", () => {
+        bulkUploadInput.click();
+      });
+
+      downloadTemplateButton.addEventListener("click", () => {
+        const headers = [
+          "device_id",
+          "imei_number",
+          "device_model",
+          "telco",
+          "telco_contract_number",
+          "phone_number",
+          "contract_start_date",
+          "contract_end_date",
+          "mdm",
+          "mdm_expiry_date",
+        ];
+        const csvContent = `${headers.join(",")}\n`;
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "register-device-template.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+
+      const formatDate = (value) => (value ? value : "—");
+
+      const saveDevices = () => {
+        localStorage.setItem(storageKey, JSON.stringify(devices));
+      };
+
+      const loadDevices = () => {
+        const stored = localStorage.getItem(storageKey);
+        devices = stored ? JSON.parse(stored) : [];
+      };
+
+      const renderEmptyState = () => {
+        deviceTableBody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="10">No devices registered yet.</td>
+          </tr>
+        `;
+      };
+
+      const renderRow = (device) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${device.deviceId || "—"}</td>
+          <td>${device.imei || "—"}</td>
+          <td>${device.model || "—"}</td>
+          <td>${device.telco || "—"}</td>
+          <td>${device.telcoContractNumber || "—"}</td>
+          <td>${device.phone || "—"}</td>
+          <td>${formatDate(device.contractStart)}</td>
+          <td>${formatDate(device.contractEnd)}</td>
+          <td>${device.mdmText || "—"}</td>
+          <td>${formatDate(device.mdmExpiry)}</td>
+        `;
+        return row;
+      };
+
+      const renderTable = () => {
+        deviceTableBody.innerHTML = "";
+        if (!devices.length) {
+          renderEmptyState();
+          return;
+        }
+
+        devices.forEach((device) => {
+          deviceTableBody.appendChild(renderRow(device));
+        });
+      };
+
+      deviceSearchInput.addEventListener("input", () => {
+        const query = deviceSearchInput.value.trim().toLowerCase();
+        const rows = Array.from(deviceTableBody.querySelectorAll("tr"));
+
+        rows.forEach((row) => {
+          if (row.classList.contains("empty-row")) {
+            row.style.display = query ? "none" : "";
+            return;
+          }
+
+          const cells = row.querySelectorAll("td");
+          const deviceId = cells[0]?.textContent.toLowerCase() || "";
+          const phone = cells[5]?.textContent.toLowerCase() || "";
+          const matches = deviceId.includes(query) || phone.includes(query);
+          row.style.display = matches ? "" : "none";
+        });
+      });
+
+      downloadCsvButton.addEventListener("click", () => {
+        const headers = [
+          "Device ID",
+          "IMEI",
+          "Model",
+          "Telco",
+          "Telco contract",
+          "Phone",
+          "Contract start",
+          "Contract end",
+          "MDM",
+          "MDM expiry",
+        ];
+
+        const lines = devices.map((device) =>
+          [
+            device.deviceId || "",
+            device.imei || "",
+            device.model || "",
+            device.telco || "",
+            device.telcoContractNumber || "",
+            device.phone || "",
+            device.contractStart || "",
+            device.contractEnd || "",
+            device.mdmText || "",
+            device.mdmExpiry || "",
+          ].map((value) => `"${String(value).replace(/\"/g, '""')}"`)
+        );
+
+        const csvContent = [headers, ...lines]
+          .map((row) => row.join(","))
+          .join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "registered-devices.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+
+      deviceForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(deviceForm);
+        const deviceId = formData.get("deviceId");
+        const imei = formData.get("imei");
+        const model = formData.get("deviceModel");
+        const telco = formData.get("telco");
+        const telcoContractNumber = formData.get("telcoContractNumber");
+        const phone = formData.get("phoneNumber");
+        const contractStart = formData.get("contractStart");
+        const contractEnd = formData.get("contractEnd");
+        const mdm = formData.get("mdm");
+        const mdmExpiry = formData.get("mdmExpiry");
+
+        const mdmText = mdm ? mdm.toUpperCase() : "";
+
+        if (deviceTableBody.querySelector(".empty-row")) {
+          deviceTableBody.innerHTML = "";
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${deviceId || "—"}</td>
+          <td>${imei || "—"}</td>
+          <td>${model || "—"}</td>
+          <td>${telco || "—"}</td>
+          <td>${telcoContractNumber || "—"}</td>
+          <td>${phone || "—"}</td>
+          <td>${formatDate(contractStart)}</td>
+          <td>${formatDate(contractEnd)}</td>
+          <td>${mdmText}</td>
+          <td>${formatDate(mdmExpiry)}</td>
+        `;
+        if (deviceTableBody.querySelector(".empty-row")) {
+          deviceTableBody.innerHTML = "";
+        }
+
+        const deviceRecord = {
+          deviceId,
+          imei,
+          model,
+          telco,
+          telcoContractNumber,
+          phone,
+          contractStart,
+          contractEnd,
+          mdmText,
+          mdmExpiry,
+        };
+
+        devices.unshift(deviceRecord);
+        saveDevices();
+        deviceTableBody.prepend(renderRow(deviceRecord));
+        deviceForm.reset();
+      });
+
+      loadDevices();
+      renderTable();
+    </script>
+  </body>
+</html>

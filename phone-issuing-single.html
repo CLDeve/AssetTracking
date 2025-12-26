@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assign Phones</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="phone-issuing.html">Back to Issuing</a>
+        <a href="index.html">Dashboard</a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Issuing</p>
+          <h1>Assign phones</h1>
+          <p class="subtitle">
+            Scan staff pass first, then scan the device barcode.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <form class="asset-form" id="issuingForm">
+          <label class="highlight-field" id="staffPassBlock">
+            <span>Staff pass</span>
+            <span class="field-hint">This must be scanned first.</span>
+            <div class="scan-row">
+              <input
+                type="text"
+                name="staffPass"
+                id="staffPassInput"
+                placeholder="Scan or enter staff pass"
+              />
+            </div>
+          </label>
+
+          <label id="deviceBarcodeBlock">
+            <span>Device barcode</span>
+            <span class="field-hint" id="deviceBarcodeHint">
+              Locked until staff pass is scanned.
+            </span>
+            <div class="scan-row">
+              <input
+                type="text"
+                name="deviceBarcode"
+                id="deviceBarcodeInput"
+                placeholder="Scan or enter device barcode"
+                disabled
+              />
+            </div>
+          </label>
+
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">Confirm issue</button>
+          </div>
+          <p class="form-message" id="issuingMessage" role="status"></p>
+        </form>
+      </section>
+    </main>
+    <script>
+      const staffPassInput = document.getElementById("staffPassInput");
+      const deviceBarcodeInput = document.getElementById("deviceBarcodeInput");
+      const staffPassBlock = document.getElementById("staffPassBlock");
+      const deviceBarcodeBlock = document.getElementById("deviceBarcodeBlock");
+      const deviceBarcodeHint = document.getElementById("deviceBarcodeHint");
+      const issuingForm = document.getElementById("issuingForm");
+      const issuingMessage = document.getElementById("issuingMessage");
+      const storageKey = "assetTrackingPhones";
+
+      const toggleDeviceBarcode = () => {
+        const hasStaffPass = staffPassInput.value.trim().length > 0;
+        deviceBarcodeInput.disabled = !hasStaffPass;
+        staffPassBlock.classList.toggle("highlight-field", !hasStaffPass);
+        deviceBarcodeBlock.classList.toggle("highlight-field", hasStaffPass);
+        deviceBarcodeHint.textContent = hasStaffPass
+          ? "Ready to scan device barcode."
+          : "Locked until staff pass is scanned.";
+      };
+
+      staffPassInput.addEventListener("input", toggleDeviceBarcode);
+
+      issuingForm.addEventListener("reset", () => {
+        requestAnimationFrame(() => {
+          toggleDeviceBarcode();
+          issuingMessage.textContent = "";
+          issuingMessage.className = "form-message";
+        });
+      });
+
+      issuingForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const staffPass = staffPassInput.value.trim();
+        const deviceBarcode = deviceBarcodeInput.value.trim();
+
+        if (!staffPass) {
+          issuingMessage.textContent = "Please scan the staff pass first.";
+          issuingMessage.className = "form-message error";
+          return;
+        }
+
+        if (!deviceBarcode) {
+          issuingMessage.textContent = "Please scan the device barcode.";
+          issuingMessage.className = "form-message error";
+          return;
+        }
+
+        const stored = localStorage.getItem(storageKey);
+        const devices = stored ? JSON.parse(stored) : [];
+        const match = devices.find(
+          (device) =>
+            String(device.deviceId || "").toLowerCase() ===
+            deviceBarcode.toLowerCase()
+        );
+
+        if (!match) {
+          issuingMessage.textContent =
+            "Device not found in master list. Please register it first.";
+          issuingMessage.className = "form-message error";
+          return;
+        }
+
+        issuingMessage.textContent = "Device issued successfully.";
+        issuingMessage.className = "form-message success";
+        issuingForm.reset();
+      });
+
+      toggleDeviceBarcode();
+    </script>
+  </body>
+</html>

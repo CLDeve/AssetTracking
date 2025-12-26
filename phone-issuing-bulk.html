@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulk Issuing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="phone-issuing.html">Back to Issuing</a>
+        <a href="index.html">Dashboard</a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Issuing</p>
+          <h1>Bulk issuing</h1>
+          <p class="subtitle">
+            Issue multiple devices at once. Device IDs must exist in the master
+            list.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <form class="bulk-issue-form" id="bulkIssueForm">
+          <label>
+            <span>Receiver staff pass</span>
+            <span class="field-hint">Scan only.</span>
+            <input
+              type="text"
+              name="bulkReceiverPass"
+              placeholder="Scan receiver staff pass"
+            />
+          </label>
+          <label>
+            <span>Location</span>
+            <select name="bulkLocation">
+              <option value="">Select location</option>
+              <option value="Terminal 1">Terminal 1</option>
+              <option value="Terminal 2">Terminal 2</option>
+              <option value="Terminal 3">Terminal 3</option>
+              <option value="Terminal 4">Terminal 4</option>
+              <option value="Seletar">Seletar</option>
+            </select>
+          </label>
+          <label class="bulk-issue-list">
+            <span>Device IDs (one per line)</span>
+            <textarea
+              name="bulkDeviceIds"
+              rows="5"
+              placeholder="PH-1024&#10;PH-1025&#10;PH-1030"
+            ></textarea>
+          </label>
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">
+              Issue devices
+            </button>
+          </div>
+          <p class="form-message" id="bulkIssueMessage" role="status"></p>
+        </form>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Status</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="bulkIssueBody">
+              <tr class="empty-row">
+                <td colspan="3">No bulk issuing activity yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script>
+      const bulkIssueForm = document.getElementById("bulkIssueForm");
+      const bulkIssueBody = document.getElementById("bulkIssueBody");
+      const bulkIssueMessage = document.getElementById("bulkIssueMessage");
+      const storageKey = "assetTrackingPhones";
+
+      const renderBulkIssueRow = (entry) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.deviceId}</td>
+          <td>
+            <span class="status-badge ${entry.status}">
+              ${entry.status.toUpperCase()}
+            </span>
+          </td>
+          <td>${entry.note}</td>
+        `;
+        return row;
+      };
+
+      bulkIssueForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(bulkIssueForm);
+        const receiverPass = String(
+          formData.get("bulkReceiverPass") || ""
+        ).trim();
+        const location = String(formData.get("bulkLocation") || "").trim();
+        const rawList = String(formData.get("bulkDeviceIds") || "");
+        const deviceIds = rawList
+          .split(/[\n,]+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+        bulkIssueMessage.textContent = "";
+        bulkIssueMessage.className = "form-message";
+
+        if (!location) {
+          bulkIssueMessage.textContent = "Please select a location.";
+          bulkIssueMessage.className = "form-message error";
+          return;
+        }
+
+        if (!receiverPass) {
+          bulkIssueMessage.textContent =
+            "Please scan the receiver staff pass.";
+          bulkIssueMessage.className = "form-message error";
+          return;
+        }
+
+        if (!deviceIds.length) {
+          bulkIssueMessage.textContent = "Please add at least one Device ID.";
+          bulkIssueMessage.className = "form-message error";
+          return;
+        }
+
+        const stored = localStorage.getItem(storageKey);
+        const devices = stored ? JSON.parse(stored) : [];
+
+        const results = deviceIds.map((deviceId) => {
+          const match = devices.find(
+            (device) =>
+              String(device.deviceId || "").toLowerCase() ===
+              deviceId.toLowerCase()
+          );
+
+          if (!match) {
+            return {
+              deviceId,
+              status: "blocked",
+              note: "Not in master list.",
+            };
+          }
+
+          return {
+            deviceId,
+            status: "issued",
+            note: `Issued to ${receiverPass} at ${location}.`,
+          };
+        });
+
+        bulkIssueBody.innerHTML = "";
+        results.forEach((entry) => {
+          bulkIssueBody.appendChild(renderBulkIssueRow(entry));
+        });
+
+        const blockedCount = results.filter(
+          (entry) => entry.status === "blocked"
+        ).length;
+        const issuedCount = results.length - blockedCount;
+        bulkIssueMessage.textContent = `Issued ${issuedCount} device(s). Blocked ${blockedCount}.`;
+      });
+    </script>
+  </body>
+</html>
