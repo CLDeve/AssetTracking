@@ -12,9 +12,9 @@
         <span class="brand-name">Asset Tracking</span>
       </div>
       <nav class="topbar-nav">
-        <a href="#">Store</a>
-        <a href="#">Dashboard</a>
-        <a href="#">Support</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -29,122 +29,69 @@
       <section class="hero-store">
         <div>
           <p class="hero-kicker">Store</p>
-          <h1>Track smarter. Choose a device flow.</h1>
-          <p class="subtitle">
-            A clean, familiar storefront for operational assets. Pick a device
-            to open its live dashboard and workflow.
-          </p>
+          <h1>Track smarter.</h1>
+          <p class="subtitle"></p>
         </div>
       </section>
-      <header class="hero">
-        <div>
-          <p class="kicker">Asset Tracking</p>
-          <h1>Select an asset to open its dashboard</h1>
-          <p class="subtitle">
-            Each asset type follows its own operational flow. Choose one to see
-            its live dashboard view.
-          </p>
-        </div>
-        <div class="summary">
-          <div class="summary-card">
-            <p class="summary-label">Active Asset</p>
-            <p class="summary-value" id="activeAssetName">Phone</p>
-          </div>
-          <div class="summary-card">
-            <p class="summary-label">Available</p>
-            <p class="summary-value">3</p>
-          </div>
-        </div>
-      </header>
-
       <section class="card-grid" id="assetGrid">
         <button class="asset-card" data-asset="Phone" type="button">
           <div class="card-hero phone"></div>
           <div class="card-top">
-            <span class="asset-icon">📱</span>
-            <span class="status-pill">Ready</span>
+            <span class="asset-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
+                <line x1="10" y1="5.5" x2="14" y2="5.5" />
+                <circle cx="12" cy="18" r="1" />
+              </svg>
+            </span>
+            <span class="status-pill" aria-hidden="true"></span>
           </div>
           <h2>Phone</h2>
-          <p>Field-issued smartphones with live GPS.</p>
           <div class="card-footer">
-            <span>Signal: Strong</span>
-            <span class="cta">View</span>
+            <span></span>
           </div>
         </button>
 
         <button class="asset-card" data-asset="Tablet" type="button">
           <div class="card-hero tablet"></div>
           <div class="card-top">
-            <span class="asset-icon">📟</span>
-            <span class="status-pill">Ready</span>
+            <span class="asset-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <rect x="5" y="2.5" width="14" height="19" rx="2.4" />
+                <line x1="12" y1="5.5" x2="12" y2="5.5" />
+                <circle cx="12" cy="19" r="0.8" />
+              </svg>
+            </span>
+            <span class="status-pill" aria-hidden="true"></span>
           </div>
           <h2>Tablet</h2>
-          <p>Operations tablets used in control rooms.</p>
           <div class="card-footer">
-            <span>Signal: Stable</span>
-            <span class="cta">View</span>
+            <span></span>
           </div>
         </button>
 
         <button class="asset-card" data-asset="Body Worn Camera" type="button">
           <div class="card-hero camera"></div>
           <div class="card-top">
-            <span class="asset-icon">🎥</span>
-            <span class="status-pill">Ready</span>
+            <span class="asset-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <rect x="3.5" y="6.5" width="13" height="11" rx="2" />
+                <polygon points="18,9 21.5,7.5 21.5,16.5 18,15" />
+                <line x1="7" y1="5.5" x2="13" y2="5.5" />
+              </svg>
+            </span>
+            <span class="status-pill" aria-hidden="true"></span>
           </div>
           <h2>Body Worn Camera</h2>
-          <p>Wearable cameras streaming on duty.</p>
           <div class="card-footer">
-            <span>Signal: Clear</span>
-            <span class="cta">View</span>
+            <span></span>
           </div>
         </button>
       </section>
 
-      <section class="asset-dashboard" aria-live="polite">
-        <div class="dashboard-header">
-          <div>
-            <p class="dashboard-kicker">Live dashboard</p>
-            <h3 id="dashboardTitle">Phone</h3>
-            <p id="dashboardSubtitle">
-              Field-issued smartphones with encrypted GPS tracking.
-            </p>
-          </div>
-          <div class="dashboard-status">
-            <span class="status-dot"></span>
-            <span id="dashboardStatus">Online</span>
-            <span class="status-time" id="dashboardUpdated">Updated now</span>
-          </div>
-        </div>
-
-        <div class="metrics-grid" id="metricsGrid"></div>
-
-        <div class="dashboard-panels">
-          <div class="panel flow-panel">
-            <h4>Operational flow</h4>
-            <ul id="flowList"></ul>
-          </div>
-          <div class="panel map-panel">
-            <h4>Location overview</h4>
-            <div class="map-placeholder">
-              <div>
-                <p class="map-label">Active zone</p>
-                <p class="map-value" id="mapZone">Central Ops</p>
-              </div>
-              <div>
-                <p class="map-label">Last ping</p>
-                <p class="map-value" id="mapPing">12:47 PM</p>
-              </div>
-            </div>
-          </div>
-          <div class="panel action-panel">
-            <h4>Quick actions</h4>
-            <div class="action-list" id="actionList"></div>
-          </div>
-        </div>
-      </section>
     </main>
 
+    <script src="app-permissions.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

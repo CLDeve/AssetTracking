@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Assign Phones</title>
+    <title>Personal Issue</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -12,8 +12,11 @@
         <span class="brand-name">Asset Tracking</span>
       </div>
       <nav class="topbar-nav">
-        <a href="phone-issuing.html">Back to Issuing</a>
-        <a href="index.html">Dashboard</a>
+        <a href="phone-issuing-assign.html">Back to Assign</a>
+        <a href="phone-issuing.html">Issuing</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -28,15 +31,15 @@
     <main class="dashboard">
       <section class="hero-store">
         <div>
-          <p class="hero-kicker">Issuing</p>
-          <h1>Assign phones</h1>
+          <p class="hero-kicker">Personal issue</p>
+          <h1>Assign phone to staff</h1>
           <p class="subtitle">
             Scan staff pass first, then scan the device barcode.
           </p>
         </div>
       </section>
 
-      <section class="form-card">
+      <section class="form-card" data-permission="issuing_personal">
         <form class="asset-form" id="issuingForm">
           <label class="highlight-field" id="staffPassBlock">
             <span>Staff pass</span>
@@ -75,6 +78,7 @@
         </form>
       </section>
     </main>
+    <script src="app-permissions.js"></script>
     <script>
       const staffPassInput = document.getElementById("staffPassInput");
       const deviceBarcodeInput = document.getElementById("deviceBarcodeInput");
@@ -84,6 +88,7 @@
       const issuingForm = document.getElementById("issuingForm");
       const issuingMessage = document.getElementById("issuingMessage");
       const storageKey = "assetTrackingPhones";
+      const issueStorageKey = "assetTrackingPhoneIssues";
 
       const toggleDeviceBarcode = () => {
         const hasStaffPass = staffPassInput.value.trim().length > 0;
@@ -136,6 +141,28 @@
           issuingMessage.className = "form-message error";
           return;
         }
+
+        const issueStored = localStorage.getItem(issueStorageKey);
+        const issues = issueStored ? JSON.parse(issueStored) : [];
+        const alreadyIssued = issues.some(
+          (issue) =>
+            String(issue.deviceId || "").toLowerCase() ===
+            deviceBarcode.toLowerCase()
+        );
+
+        if (alreadyIssued) {
+          issuingMessage.textContent = "Device already issued out.";
+          issuingMessage.className = "form-message error";
+          return;
+        }
+
+        issues.push({
+          deviceId: deviceBarcode,
+          staffPass,
+          location: "Personal",
+          issuedAt: new Date().toLocaleString(),
+        });
+        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
 
         issuingMessage.textContent = "Device issued successfully.";
         issuingMessage.className = "form-message success";

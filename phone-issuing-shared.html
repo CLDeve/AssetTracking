@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared Issue</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="phone-issuing-assign.html">Back to Assign</a>
+        <a href="phone-issuing.html">Issuing</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Shared issue</p>
+          <h1>Assign shared phones</h1>
+          <p class="subtitle">
+            Record a shared device assignment for shift or team use.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card" data-permission="issuing_shared">
+        <form class="asset-form" id="sharedIssueForm">
+          <label>
+            <span>Team or shift name</span>
+            <input
+              type="text"
+              name="teamName"
+              placeholder="e.g. Night Shift A"
+            />
+          </label>
+          <label>
+            <span>Device barcode</span>
+            <input
+              type="text"
+              name="deviceBarcode"
+              id="sharedBarcodeInput"
+              placeholder="Scan or enter device barcode"
+            />
+          </label>
+          <label>
+            <span>Location</span>
+            <select name="sharedLocation">
+              <option value="">Select location</option>
+              <option value="Terminal 1">Terminal 1</option>
+              <option value="Terminal 2">Terminal 2</option>
+              <option value="Terminal 3">Terminal 3</option>
+              <option value="Terminal 4">Terminal 4</option>
+              <option value="Seletar">Seletar</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">Confirm issue</button>
+          </div>
+          <p class="form-message" id="sharedIssueMessage" role="status"></p>
+        </form>
+      </section>
+    </main>
+    <script src="app-permissions.js"></script>
+    <script>
+      const sharedIssueForm = document.getElementById("sharedIssueForm");
+      const sharedIssueMessage = document.getElementById("sharedIssueMessage");
+      const sharedBarcodeInput = document.getElementById("sharedBarcodeInput");
+      const storageKey = "assetTrackingPhones";
+      const issueStorageKey = "assetTrackingPhoneIssues";
+
+      sharedIssueForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(sharedIssueForm);
+        const teamName = String(formData.get("teamName") || "").trim();
+        const deviceBarcode = String(formData.get("deviceBarcode") || "").trim();
+        const location = String(formData.get("sharedLocation") || "").trim();
+
+        if (!teamName) {
+          sharedIssueMessage.textContent = "Please enter the team or shift name.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
+
+        if (!deviceBarcode) {
+          sharedIssueMessage.textContent = "Please scan the device barcode.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
+
+        if (!location) {
+          sharedIssueMessage.textContent = "Please select a location.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
+
+        const stored = localStorage.getItem(storageKey);
+        const devices = stored ? JSON.parse(stored) : [];
+        const match = devices.find(
+          (device) =>
+            String(device.deviceId || "").toLowerCase() ===
+            deviceBarcode.toLowerCase()
+        );
+
+        if (!match) {
+          sharedIssueMessage.textContent =
+            "Device not found in master list. Please register it first.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
+
+        const issueStored = localStorage.getItem(issueStorageKey);
+        const issues = issueStored ? JSON.parse(issueStored) : [];
+        const alreadyIssued = issues.some(
+          (issue) =>
+            String(issue.deviceId || "").toLowerCase() ===
+            deviceBarcode.toLowerCase()
+        );
+
+        if (alreadyIssued) {
+          sharedIssueMessage.textContent = "Device already issued out.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
+
+        issues.push({
+          deviceId: deviceBarcode,
+          staffPass: teamName,
+          location,
+          issuedAt: new Date().toLocaleString(),
+        });
+        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
+
+        sharedIssueMessage.textContent = "Shared device issued successfully.";
+        sharedIssueMessage.className = "form-message success";
+        sharedIssueForm.reset();
+      });
+    </script>
+  </body>
+</html>

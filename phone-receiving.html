@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Returning</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="phone.html">Back to Phone</a>
+        <a href="index.html">Dashboard</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Returning</p>
+          <h1>Return issued phones</h1>
+          <p class="subtitle">
+            Devices can only be returned if they were issued out earlier.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card" data-permission="returning">
+        <form class="asset-form" id="receivingForm">
+          <label class="highlight-field" id="receiverPassBlock">
+            <span>Receiver staff pass</span>
+            <span class="field-hint">Scan only.</span>
+            <div class="scan-row">
+              <input
+                type="text"
+                name="receiverPass"
+                id="receiverPassInput"
+                placeholder="Scan receiver staff pass"
+              />
+            </div>
+          </label>
+
+          <label id="returnBarcodeBlock">
+            <span>Device barcode</span>
+            <span class="field-hint" id="returnBarcodeHint">
+              Locked until receiver pass is scanned.
+            </span>
+            <div class="scan-row">
+              <input
+                type="text"
+                name="deviceBarcode"
+                id="receiveBarcodeInput"
+                placeholder="Scan or enter device barcode"
+                disabled
+              />
+            </div>
+          </label>
+
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">
+              Confirm return
+            </button>
+          </div>
+          <p class="form-message" id="receivingMessage" role="status"></p>
+        </form>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Issued devices</h2>
+            <p class="subtitle">Only issued devices can be returned.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Issued to</th>
+                <th>Location</th>
+                <th>Issued at</th>
+              </tr>
+            </thead>
+            <tbody id="issuedDevicesBody">
+              <tr class="empty-row">
+                <td colspan="4">No issued devices yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app-permissions.js"></script>
+    <script>
+      const receivingForm = document.getElementById("receivingForm");
+      const receivingMessage = document.getElementById("receivingMessage");
+      const receiverPassInput = document.getElementById("receiverPassInput");
+      const receiveBarcodeInput = document.getElementById("receiveBarcodeInput");
+      const receiverPassBlock = document.getElementById("receiverPassBlock");
+      const returnBarcodeBlock = document.getElementById("returnBarcodeBlock");
+      const returnBarcodeHint = document.getElementById("returnBarcodeHint");
+      const issuedDevicesBody = document.getElementById("issuedDevicesBody");
+      const issueStorageKey = "assetTrackingPhoneIssues";
+
+      const renderIssuedTable = (issues) => {
+        issuedDevicesBody.innerHTML = "";
+        if (!issues.length) {
+          issuedDevicesBody.innerHTML = `
+            <tr class="empty-row">
+              <td colspan="4">No issued devices yet.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        issues.forEach((issue) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${issue.deviceId}</td>
+            <td>${issue.staffPass}</td>
+            <td>${issue.location}</td>
+            <td>${issue.issuedAt}</td>
+          `;
+          issuedDevicesBody.appendChild(row);
+        });
+      };
+
+      const loadIssues = () => {
+        const stored = localStorage.getItem(issueStorageKey);
+        return stored ? JSON.parse(stored) : [];
+      };
+
+      const saveIssues = (issues) => {
+        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
+      };
+
+      const toggleReturnBarcode = () => {
+        const hasReceiverPass = receiverPassInput.value.trim().length > 0;
+        receiveBarcodeInput.disabled = !hasReceiverPass;
+        receiverPassBlock.classList.toggle("highlight-field", !hasReceiverPass);
+        returnBarcodeBlock.classList.toggle("highlight-field", hasReceiverPass);
+        returnBarcodeHint.textContent = hasReceiverPass
+          ? "Ready to scan device barcode."
+          : "Locked until receiver pass is scanned.";
+      };
+
+      receiverPassInput.addEventListener("input", toggleReturnBarcode);
+
+      receivingForm.addEventListener("reset", () => {
+        requestAnimationFrame(() => {
+          toggleReturnBarcode();
+          receivingMessage.textContent = "";
+          receivingMessage.className = "form-message";
+        });
+      });
+
+      receivingForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const receiverPass = receiverPassInput.value.trim();
+        const deviceBarcode = receiveBarcodeInput.value.trim();
+
+        if (!receiverPass) {
+          receivingMessage.textContent =
+            "Please scan the receiver staff pass.";
+          receivingMessage.className = "form-message error";
+          return;
+        }
+
+        if (!deviceBarcode) {
+          receivingMessage.textContent = "Please scan the device barcode.";
+          receivingMessage.className = "form-message error";
+          return;
+        }
+
+        const issues = loadIssues();
+        const index = issues.findIndex(
+          (issue) =>
+            String(issue.deviceId || "").toLowerCase() ===
+            deviceBarcode.toLowerCase()
+        );
+
+        if (index === -1) {
+          receivingMessage.textContent =
+            "Device was not issued out. Check the barcode.";
+          receivingMessage.className = "form-message error";
+          return;
+        }
+
+        issues.splice(index, 1);
+        saveIssues(issues);
+        renderIssuedTable(issues);
+
+        receivingMessage.textContent = "Device returned successfully.";
+        receivingMessage.className = "form-message success";
+        receivingForm.reset();
+      });
+
+      renderIssuedTable(loadIssues());
+      toggleReturnBarcode();
+    </script>
+  </body>
+</html>

@@ -14,6 +14,9 @@
       <nav class="topbar-nav">
         <a href="phone.html">Back to Phone</a>
         <a href="index.html">Dashboard</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -37,14 +40,22 @@
       </section>
 
       <section class="detail-grid">
-        <a class="detail-card-link" href="phone-issuing-single.html">
+        <a
+          class="detail-card-link"
+          href="phone-issuing-assign.html"
+          data-permission="issuing_personal"
+        >
           <article class="detail-card">
             <div class="card-hero phone"></div>
             <h2>Assign phones to staff</h2>
             <p>Issue a single device with enforced scan order.</p>
           </article>
         </a>
-        <a class="detail-card-link" href="phone-issuing-bulk.html">
+        <a
+          class="detail-card-link"
+          href="phone-issuing-bulk.html"
+          data-permission="bulk_issuing"
+        >
           <article class="detail-card">
             <div class="card-hero tablet"></div>
             <h2>Bulk issuing</h2>
@@ -53,5 +64,6 @@
         </a>
       </section>
     </main>
+    <script src="app-permissions.js"></script>
   </body>
 </html>

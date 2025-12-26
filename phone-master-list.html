@@ -14,6 +14,9 @@
       <nav class="topbar-nav">
         <a href="phone.html">Back to Phone</a>
         <a href="index.html">Dashboard</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -34,7 +37,7 @@
             Capture the essential details for tracking and compliance.
           </p>
         </div>
-        <div class="bulk-upload-inline">
+        <div class="bulk-upload-inline" data-permission="register_device">
           <input
             class="bulk-file-input"
             type="file"
@@ -54,7 +57,7 @@
         </div>
       </section>
 
-      <section class="form-card">
+      <section class="form-card" data-permission="register_device">
         <form class="asset-form" id="deviceForm">
           <label>
             <span>Device ID</span>
@@ -69,6 +72,24 @@
           <label>
             <span>Device model</span>
             <input type="text" name="deviceModel" placeholder="e.g. iPhone 14" />
+          </label>
+
+          <label>
+            <span>Type</span>
+            <select name="deviceType">
+              <option value="">Select type</option>
+              <option value="Personal">Personal</option>
+              <option value="Shared">Shared</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Status</span>
+            <select name="deviceStatus">
+              <option value="">Select status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </label>
 
           <label>
@@ -154,6 +175,8 @@
                 <th>Device ID</th>
                 <th>IMEI</th>
                 <th>Model</th>
+                <th>Type</th>
+                <th>Status</th>
                 <th>Telco</th>
                 <th>Telco contract</th>
                 <th>Phone</th>
@@ -165,7 +188,7 @@
             </thead>
             <tbody id="deviceTableBody">
               <tr class="empty-row">
-                <td colspan="10">No devices registered yet.</td>
+                <td colspan="12">No devices registered yet.</td>
               </tr>
             </tbody>
           </table>
@@ -173,6 +196,7 @@
       </section>
 
     </main>
+    <script src="app-permissions.js"></script>
     <script>
       const bulkUploadButton = document.getElementById("bulkUploadButton");
       const bulkUploadInput = document.getElementById("bulkUploadInput");
@@ -195,6 +219,8 @@
           "device_id",
           "imei_number",
           "device_model",
+          "device_type",
+          "device_status",
           "telco",
           "telco_contract_number",
           "phone_number",
@@ -229,7 +255,7 @@
       const renderEmptyState = () => {
         deviceTableBody.innerHTML = `
           <tr class="empty-row">
-            <td colspan="10">No devices registered yet.</td>
+            <td colspan="11">No devices registered yet.</td>
           </tr>
         `;
       };
@@ -240,6 +266,8 @@
           <td>${device.deviceId || "—"}</td>
           <td>${device.imei || "—"}</td>
           <td>${device.model || "—"}</td>
+          <td>${device.deviceType || "—"}</td>
+          <td>${device.deviceStatus || "—"}</td>
           <td>${device.telco || "—"}</td>
           <td>${device.telcoContractNumber || "—"}</td>
           <td>${device.phone || "—"}</td>
@@ -275,7 +303,7 @@
 
           const cells = row.querySelectorAll("td");
           const deviceId = cells[0]?.textContent.toLowerCase() || "";
-          const phone = cells[5]?.textContent.toLowerCase() || "";
+          const phone = cells[7]?.textContent.toLowerCase() || "";
           const matches = deviceId.includes(query) || phone.includes(query);
           row.style.display = matches ? "" : "none";
         });
@@ -286,6 +314,8 @@
           "Device ID",
           "IMEI",
           "Model",
+          "Type",
+          "Status",
           "Telco",
           "Telco contract",
           "Phone",
@@ -300,6 +330,8 @@
             device.deviceId || "",
             device.imei || "",
             device.model || "",
+            device.deviceType || "",
+            device.deviceStatus || "",
             device.telco || "",
             device.telcoContractNumber || "",
             device.phone || "",
@@ -330,6 +362,8 @@
         const deviceId = formData.get("deviceId");
         const imei = formData.get("imei");
         const model = formData.get("deviceModel");
+        const deviceType = formData.get("deviceType");
+        const deviceStatus = formData.get("deviceStatus");
         const telco = formData.get("telco");
         const telcoContractNumber = formData.get("telcoContractNumber");
         const phone = formData.get("phoneNumber");
@@ -344,19 +378,6 @@
           deviceTableBody.innerHTML = "";
         }
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${deviceId || "—"}</td>
-          <td>${imei || "—"}</td>
-          <td>${model || "—"}</td>
-          <td>${telco || "—"}</td>
-          <td>${telcoContractNumber || "—"}</td>
-          <td>${phone || "—"}</td>
-          <td>${formatDate(contractStart)}</td>
-          <td>${formatDate(contractEnd)}</td>
-          <td>${mdmText}</td>
-          <td>${formatDate(mdmExpiry)}</td>
-        `;
         if (deviceTableBody.querySelector(".empty-row")) {
           deviceTableBody.innerHTML = "";
         }
@@ -365,6 +386,8 @@
           deviceId,
           imei,
           model,
+          deviceType,
+          deviceStatus,
           telco,
           telcoContractNumber,
           phone,

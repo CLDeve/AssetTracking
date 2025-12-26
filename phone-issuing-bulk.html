@@ -14,6 +14,9 @@
       <nav class="topbar-nav">
         <a href="phone-issuing.html">Back to Issuing</a>
         <a href="index.html">Dashboard</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -37,7 +40,7 @@
         </div>
       </section>
 
-      <section class="form-card">
+      <section class="form-card" data-permission="bulk_issuing">
         <form class="bulk-issue-form" id="bulkIssueForm">
           <label>
             <span>Receiver staff pass</span>
@@ -93,11 +96,13 @@
         </div>
       </section>
     </main>
+    <script src="app-permissions.js"></script>
     <script>
       const bulkIssueForm = document.getElementById("bulkIssueForm");
       const bulkIssueBody = document.getElementById("bulkIssueBody");
       const bulkIssueMessage = document.getElementById("bulkIssueMessage");
       const storageKey = "assetTrackingPhones";
+      const issueStorageKey = "assetTrackingPhoneIssues";
 
       const renderBulkIssueRow = (entry) => {
         const row = document.createElement("tr");
@@ -150,6 +155,8 @@
 
         const stored = localStorage.getItem(storageKey);
         const devices = stored ? JSON.parse(stored) : [];
+        const issueStored = localStorage.getItem(issueStorageKey);
+        const issues = issueStored ? JSON.parse(issueStored) : [];
 
         const results = deviceIds.map((deviceId) => {
           const match = devices.find(
@@ -166,12 +173,39 @@
             };
           }
 
+          const alreadyIssued = issues.some(
+            (issue) =>
+              String(issue.deviceId || "").toLowerCase() ===
+              deviceId.toLowerCase()
+          );
+
+          if (alreadyIssued) {
+            return {
+              deviceId,
+              status: "blocked",
+              note: "Already issued out.",
+            };
+          }
+
           return {
             deviceId,
             status: "issued",
             note: `Issued to ${receiverPass} at ${location}.`,
           };
         });
+
+        results
+          .filter((entry) => entry.status === "issued")
+          .forEach((entry) => {
+            issues.push({
+              deviceId: entry.deviceId,
+              staffPass: receiverPass,
+              location,
+              issuedAt: new Date().toLocaleString(),
+            });
+          });
+
+        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
 
         bulkIssueBody.innerHTML = "";
         results.forEach((entry) => {

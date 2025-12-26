@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="phone.html">Phones</a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <button class="icon-button" type="button" aria-label="Account">
+          ◎
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Administration</p>
+          <h1>User management</h1>
+          <p class="subtitle">
+            Select a role to control which functions are enabled.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Role permissions</h2>
+            <p class="subtitle">
+              Choose a role and check the functions to allow.
+            </p>
+          </div>
+        </div>
+        <form class="role-permissions-form" id="rolePermissionsForm">
+          <label>
+            <span>Role</span>
+            <select id="rolePermissionSelect">
+              <option value="Admin">Admin</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Operator">Operator</option>
+              <option value="Viewer">Viewer</option>
+            </select>
+          </label>
+          <div class="permission-checklist" id="permissionChecklist">
+            <label class="check-item">
+              <input type="checkbox" value="register_device" checked />
+              <span>Register device</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="issuing_personal" checked />
+              <span>Assign phones (Personal)</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="issuing_shared" checked />
+              <span>Assign phones (Shared)</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="bulk_issuing" checked />
+              <span>Bulk issuing</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="returning" checked />
+              <span>Returning</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="user_management" checked />
+              <span>User management</span>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">
+              Save permissions
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Users</h2>
+            <p class="subtitle">Add users and assign roles.</p>
+          </div>
+        </div>
+        <form class="asset-form" id="userForm">
+          <label>
+            <span>Name</span>
+            <input type="text" name="name" placeholder="e.g. Alex Tan" />
+          </label>
+          <label>
+            <span>Username</span>
+            <input type="text" name="username" placeholder="e.g. alex.tan" />
+          </label>
+          <label>
+            <span>Role</span>
+            <select name="role">
+              <option value="Admin">Admin</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Operator">Operator</option>
+              <option value="Viewer">Viewer</option>
+            </select>
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Set password" />
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">Add user</button>
+          </div>
+        </form>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr class="empty-row">
+                <td colspan="4">No users created yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app-permissions.js"></script>
+    <script>
+      const ROLE_KEY = "assetTrackingRole";
+      const PERMISSIONS_KEY = "assetTrackingRolePermissions";
+      const USERS_KEY = "assetTrackingUsers";
+      const rolePermissionSelect = document.getElementById(
+        "rolePermissionSelect"
+      );
+      const permissionChecklist = document.getElementById(
+        "permissionChecklist"
+      );
+      const rolePermissionsForm = document.getElementById(
+        "rolePermissionsForm"
+      );
+      const userForm = document.getElementById("userForm");
+      const userTableBody = document.getElementById("userTableBody");
+
+      const PERMISSIONS = [
+        { key: "register_device", label: "Register device" },
+        { key: "issuing_personal", label: "Assign phones (Personal)" },
+        { key: "issuing_shared", label: "Assign phones (Shared)" },
+        { key: "bulk_issuing", label: "Bulk issuing" },
+        { key: "returning", label: "Returning" },
+        { key: "user_management", label: "User management" },
+      ];
+
+      const DEFAULT_ROLE_PERMISSIONS = {
+        Admin: [
+          "register_device",
+          "issuing_personal",
+          "issuing_shared",
+          "bulk_issuing",
+          "returning",
+          "user_management",
+        ],
+        Supervisor: [
+          "register_device",
+          "issuing_personal",
+          "issuing_shared",
+          "bulk_issuing",
+          "returning",
+        ],
+        Operator: ["issuing_personal", "issuing_shared", "returning"],
+        Viewer: [],
+      };
+
+      const getPermissions = () => {
+        const stored = localStorage.getItem(PERMISSIONS_KEY);
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch (error) {
+            return (
+              window.assetTrackingPermissions?.defaults ||
+              DEFAULT_ROLE_PERMISSIONS
+            );
+          }
+        }
+
+        return (
+          window.assetTrackingPermissions?.defaults || DEFAULT_ROLE_PERMISSIONS
+        );
+      };
+
+      const savePermissions = (permissions) => {
+        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions));
+      };
+
+      const renderPermissionChecklist = (role) => {
+        permissionChecklist.innerHTML = "";
+        const permissions = getPermissions();
+        const allowed = new Set(permissions[role] || []);
+
+        PERMISSIONS.forEach((permission) => {
+          const wrapper = document.createElement("label");
+          wrapper.className = "check-item";
+          wrapper.innerHTML = `
+            <input type="checkbox" value="${permission.key}" ${
+              allowed.has(permission.key) ? "checked" : ""
+            } />
+            <span>${permission.label}</span>
+          `;
+          permissionChecklist.appendChild(wrapper);
+        });
+      };
+
+      rolePermissionSelect.addEventListener("change", () => {
+        renderPermissionChecklist(rolePermissionSelect.value);
+      });
+
+      rolePermissionsForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const selectedRole = rolePermissionSelect.value;
+        const checked = Array.from(
+          permissionChecklist.querySelectorAll("input:checked")
+        ).map((input) => input.value);
+        const permissions = getPermissions();
+        permissions[selectedRole] = checked;
+        savePermissions(permissions);
+        window.location.reload();
+      });
+
+      const renderUsers = (users) => {
+        userTableBody.innerHTML = "";
+        if (!users.length) {
+          userTableBody.innerHTML = `
+            <tr class="empty-row">
+              <td colspan="4">No users created yet.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        users.forEach((user, index) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${user.name}</td>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td>
+              <button class="secondary-button" data-remove="${index}">
+                Remove
+              </button>
+            </td>
+          `;
+          userTableBody.appendChild(row);
+        });
+      };
+
+      const getUsers = () => {
+        const stored = localStorage.getItem(USERS_KEY);
+        if (!stored) {
+          return [];
+        }
+
+        try {
+          return JSON.parse(stored);
+        } catch (error) {
+          return [];
+        }
+      };
+
+      const saveUsers = (users) => {
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      };
+
+      userForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(userForm);
+        const name = String(formData.get("name") || "").trim();
+        const username = String(formData.get("username") || "").trim();
+        const role = String(formData.get("role") || "").trim();
+        const password = String(formData.get("password") || "").trim();
+
+        if (!name || !username || !role || !password) {
+          return;
+        }
+
+        const users = getUsers();
+        users.push({ name, username, role, password });
+        saveUsers(users);
+        renderUsers(users);
+        userForm.reset();
+      });
+
+      userTableBody.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        const index = target.getAttribute("data-remove");
+        if (index === null) {
+          return;
+        }
+
+        const users = getUsers();
+        users.splice(Number(index), 1);
+        saveUsers(users);
+        renderUsers(users);
+      });
+
+      renderPermissionChecklist(rolePermissionSelect.value);
+      renderUsers(getUsers());
+    </script>
+  </body>
+</html>
