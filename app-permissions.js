@@ -5,6 +5,7 @@ const ROLE_PERMISSIONS_DEFAULT = {
     "issuing_shared",
     "bulk_issuing",
     "returning",
+    "location_list",
     "user_management",
   ],
   Supervisor: [
@@ -13,15 +14,38 @@ const ROLE_PERMISSIONS_DEFAULT = {
     "issuing_shared",
     "bulk_issuing",
     "returning",
+    "location_list",
   ],
-  Operator: ["issuing_personal", "issuing_shared", "returning"],
+  Operator: [
+    "issuing_personal",
+    "issuing_shared",
+    "returning",
+    "location_list",
+  ],
   Viewer: [],
 };
 
 const ROLE_KEY = "assetTrackingRole";
 const PERMISSIONS_KEY = "assetTrackingRolePermissions";
 
-const getCurrentRole = () => localStorage.getItem(ROLE_KEY) || "Admin";
+const resolveRoleFromUser = () => {
+  const currentUser = localStorage.getItem("assetTrackingCurrentUser");
+  if (!currentUser) {
+    return null;
+  }
+
+  try {
+    const storedUsers = localStorage.getItem("assetTrackingUsers");
+    const users = storedUsers ? JSON.parse(storedUsers) : [];
+    const match = users.find((user) => user.username === currentUser);
+    return match ? match.role : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const getCurrentRole = () =>
+  resolveRoleFromUser() || localStorage.getItem(ROLE_KEY) || "Admin";
 
 const getRolePermissions = () => {
   const stored = localStorage.getItem(PERMISSIONS_KEY);

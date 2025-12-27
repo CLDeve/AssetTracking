@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Location List</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html">Store</a>
+        <a href="phone.html">Phones</a>
+        <a href="login.html">Login</a>
+        <a href="location-list.html" data-permission="location_list">
+          Location list
+        </a>
+        <a href="user-management.html" data-permission="user_management">
+          User management
+        </a>
+        <a href="audit-log.html" data-permission="user_management">Audit log</a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <div class="user-chip">
+          <span class="user-label">User</span>
+          <span class="user-name" data-current-user>Guest</span>
+        </div>
+        <a class="text-link" href="logout.html" data-logout-link>Logout</a>
+      </div>
+    </header>
+
+    <main class="dashboard" data-permission="location_list">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Location list</p>
+          <h1 id="locationTitle">Your terminal devices</h1>
+          <p class="subtitle" id="locationSubtitle">
+            Devices assigned to your location appear under Pending.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Scan devices</h2>
+            <p class="subtitle" id="activeUserInfo"></p>
+          </div>
+        </div>
+        <form class="asset-form" id="locationScanForm">
+          <label class="highlight-field">
+            <span>Device barcode</span>
+            <span class="field-hint">Scan to move into “With me now”.</span>
+            <div class="scan-row">
+              <input
+                type="text"
+                name="deviceBarcode"
+                id="locationScanInput"
+                placeholder="Scan or enter device barcode"
+              />
+            </div>
+          </label>
+          <div class="form-actions">
+            <button class="secondary-button" type="reset">Clear</button>
+            <button class="primary-button" type="submit">Confirm scan</button>
+          </div>
+          <p class="form-message" id="locationScanMessage" role="status"></p>
+        </form>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Pending</h2>
+            <p class="subtitle">Assigned to your location, not yet scanned.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody id="pendingBody">
+              <tr class="empty-row">
+                <td colspan="4">No pending devices.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>With me now</h2>
+            <p class="subtitle">Devices currently held by you.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Held by</th>
+                <th>Location</th>
+                <th>Scanned at</th>
+              </tr>
+            </thead>
+            <tbody id="holdingBody">
+              <tr class="empty-row">
+                <td colspan="4">No devices scanned yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app-permissions.js"></script>
+    <script src="app-session.js"></script>
+    <script src="audit-log.js"></script>
+    <script>
+      const USERS_KEY = "assetTrackingUsers";
+      const DEVICES_KEY = "assetTrackingPhones";
+      const HOLDINGS_KEY = "assetTrackingOpsHoldings";
+      const CURRENT_USER_KEY = "assetTrackingCurrentUser";
+
+      const locationTitle = document.getElementById("locationTitle");
+      const locationSubtitle = document.getElementById("locationSubtitle");
+      const activeUserInfo = document.getElementById("activeUserInfo");
+      const locationScanForm = document.getElementById("locationScanForm");
+      const locationScanInput = document.getElementById("locationScanInput");
+      const locationScanMessage = document.getElementById("locationScanMessage");
+      const pendingBody = document.getElementById("pendingBody");
+      const holdingBody = document.getElementById("holdingBody");
+
+      const getUsers = () => {
+        const stored = localStorage.getItem(USERS_KEY);
+        if (!stored) return [];
+        try {
+          return JSON.parse(stored);
+        } catch (error) {
+          return [];
+        }
+      };
+
+      const getDevices = () => {
+        const stored = localStorage.getItem(DEVICES_KEY);
+        if (!stored) return [];
+        try {
+          return JSON.parse(stored);
+        } catch (error) {
+          return [];
+        }
+      };
+
+      const getHoldings = () => {
+        const stored = localStorage.getItem(HOLDINGS_KEY);
+        if (!stored) return [];
+        try {
+          return JSON.parse(stored);
+        } catch (error) {
+          return [];
+        }
+      };
+
+      const saveHoldings = (holdings) => {
+        localStorage.setItem(HOLDINGS_KEY, JSON.stringify(holdings));
+      };
+
+      const resolveActiveUser = () => {
+        const users = getUsers();
+        if (!users.length) return null;
+
+        const storedUser = localStorage.getItem(CURRENT_USER_KEY);
+        if (storedUser) {
+          const match = users.find((user) => user.username === storedUser);
+          if (match) return match;
+        }
+
+        const opsUser = users.find((user) => user.role === "Operator");
+        const active = opsUser || users[0];
+        localStorage.setItem(CURRENT_USER_KEY, active.username);
+        return active;
+      };
+
+      const renderEmptyRow = (tbody, message, colspan) => {
+        tbody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="${colspan}">${message}</td>
+          </tr>
+        `;
+      };
+
+      const renderTables = (activeUser) => {
+        const devices = getDevices();
+        const holdings = getHoldings();
+
+        const location = activeUser?.location || "";
+        const pending = devices.filter(
+          (device) =>
+            device.deviceLocation === location &&
+            !holdings.some((hold) => hold.deviceId === device.deviceId)
+        );
+
+        const withMe = holdings.filter(
+          (hold) => hold.username === activeUser?.username
+        );
+
+        pendingBody.innerHTML = "";
+        if (!pending.length) {
+          renderEmptyRow(pendingBody, "No pending devices.", 4);
+        } else {
+          pending.forEach((device) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${device.deviceId || "—"}</td>
+              <td>${device.deviceType || "—"}</td>
+              <td>${device.deviceStatus || "—"}</td>
+              <td>${device.deviceLocation || "—"}</td>
+            `;
+            pendingBody.appendChild(row);
+          });
+        }
+
+        holdingBody.innerHTML = "";
+        if (!withMe.length) {
+          renderEmptyRow(holdingBody, "No devices scanned yet.", 4);
+        } else {
+          withMe.forEach((hold) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${hold.deviceId}</td>
+              <td>${hold.username}</td>
+              <td>${hold.location}</td>
+              <td>${hold.scannedAt}</td>
+            `;
+            holdingBody.appendChild(row);
+          });
+        }
+      };
+
+      const activeUser = resolveActiveUser();
+
+      if (!activeUser || !activeUser.location) {
+        locationTitle.textContent = "No active Ops user";
+        locationSubtitle.textContent =
+          "Create an Ops user with a location in User management.";
+        activeUserInfo.textContent = "";
+        locationScanForm.querySelectorAll("input, button").forEach((el) => {
+          el.disabled = true;
+        });
+        renderEmptyRow(pendingBody, "No pending devices.", 4);
+        renderEmptyRow(holdingBody, "No devices scanned yet.", 4);
+      } else {
+        locationTitle.textContent = `${activeUser.location} devices`;
+        activeUserInfo.textContent = `Active user: ${activeUser.name} (${activeUser.username})`;
+        renderTables(activeUser);
+      }
+
+      locationScanForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!activeUser) return;
+
+        const barcode = locationScanInput.value.trim();
+        if (!barcode) {
+          locationScanMessage.textContent = "Please scan a device barcode.";
+          locationScanMessage.className = "form-message error";
+          return;
+        }
+
+        const devices = getDevices();
+        const device = devices.find(
+          (item) =>
+            String(item.deviceId || "").toLowerCase() === barcode.toLowerCase()
+        );
+
+        if (!device) {
+          locationScanMessage.textContent =
+            "Device not found in master list.";
+          locationScanMessage.className = "form-message error";
+          return;
+        }
+
+        if (device.deviceLocation !== activeUser.location) {
+          locationScanMessage.textContent =
+            "Device is not assigned to your location.";
+          locationScanMessage.className = "form-message error";
+          return;
+        }
+
+        const holdings = getHoldings();
+        const alreadyHeld = holdings.some(
+          (hold) =>
+            String(hold.deviceId || "").toLowerCase() === barcode.toLowerCase()
+        );
+
+        if (alreadyHeld) {
+          locationScanMessage.textContent = "Device already scanned.";
+          locationScanMessage.className = "form-message error";
+          return;
+        }
+
+        holdings.push({
+          deviceId: device.deviceId,
+          username: activeUser.username,
+          location: activeUser.location,
+          scannedAt: new Date().toLocaleString(),
+        });
+        saveHoldings(holdings);
+        renderTables(activeUser);
+
+        locationScanMessage.textContent = "Device moved to 'With me now'.";
+        locationScanMessage.className = "form-message success";
+        locationScanForm.reset();
+        window.auditLog.logAudit(
+          "ops_scan",
+          `${device.deviceId} @ ${activeUser.location}`
+        );
+      });
+    </script>
+  </body>
+</html>

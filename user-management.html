@@ -14,6 +14,10 @@
       <nav class="topbar-nav">
         <a href="index.html">Dashboard</a>
         <a href="phone.html">Phones</a>
+        <a href="login.html">Login</a>
+        <a href="location-list.html" data-permission="location_list">
+          Location list
+        </a>
         <a href="user-management.html" data-permission="user_management">
           User management
         </a>
@@ -22,9 +26,11 @@
         <button class="icon-button" type="button" aria-label="Search">
           ⌕
         </button>
-        <button class="icon-button" type="button" aria-label="Account">
-          ◎
-        </button>
+        <div class="user-chip">
+          <span class="user-label">User</span>
+          <span class="user-name" data-current-user>Guest</span>
+        </div>
+        <a class="text-link" href="logout.html" data-logout-link>Logout</a>
       </div>
     </header>
 
@@ -85,7 +91,12 @@
             </label>
           </div>
           <div class="form-actions">
-            <button class="primary-button" type="submit">
+            <button
+              class="primary-button"
+              type="submit"
+              id="savePermissionsBtn"
+              disabled
+            >
               Save permissions
             </button>
           </div>
@@ -118,6 +129,18 @@
             </select>
           </label>
           <label>
+            <span>Location</span>
+            <select name="location">
+              <option value="">Select location</option>
+              <option value="Terminal 1">Terminal 1</option>
+              <option value="Terminal 2">Terminal 2</option>
+              <option value="Terminal 3">Terminal 3</option>
+              <option value="Terminal 4">Terminal 4</option>
+              <option value="Selatar">Selatar</option>
+              <option value="HR and Admin">HR and Admin</option>
+            </select>
+          </label>
+          <label>
             <span>Password</span>
             <input type="password" name="password" placeholder="Set password" />
           </label>
@@ -132,23 +155,28 @@
                 <th>Name</th>
                 <th>Username</th>
                 <th>Role</th>
+                <th>Location</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
               <tr class="empty-row">
-                <td colspan="4">No users created yet.</td>
+                <td colspan="5">No users created yet.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
+
     </main>
 
     <script src="app-permissions.js"></script>
+    <script src="app-session.js"></script>
+    <script src="audit-log.js"></script>
     <script>
-      const ROLE_KEY = "assetTrackingRole";
-      const PERMISSIONS_KEY = "assetTrackingRolePermissions";
+      const permissionsKey = window.assetTrackingPermissions
+        ? window.assetTrackingPermissions.storageKey
+        : "assetTrackingRolePermissions";
       const USERS_KEY = "assetTrackingUsers";
       const rolePermissionSelect = document.getElementById(
         "rolePermissionSelect"
@@ -159,6 +187,7 @@
       const rolePermissionsForm = document.getElementById(
         "rolePermissionsForm"
       );
+      const savePermissionsBtn = document.getElementById("savePermissionsBtn");
       const userForm = document.getElementById("userForm");
       const userTableBody = document.getElementById("userTableBody");
 
@@ -168,6 +197,7 @@
         { key: "issuing_shared", label: "Assign phones (Shared)" },
         { key: "bulk_issuing", label: "Bulk issuing" },
         { key: "returning", label: "Returning" },
+        { key: "location_list", label: "Location list" },
         { key: "user_management", label: "User management" },
       ];
 
@@ -178,6 +208,7 @@
           "issuing_shared",
           "bulk_issuing",
           "returning",
+          "location_list",
           "user_management",
         ],
         Supervisor: [
@@ -186,13 +217,19 @@
           "issuing_shared",
           "bulk_issuing",
           "returning",
+          "location_list",
         ],
-        Operator: ["issuing_personal", "issuing_shared", "returning"],
+        Operator: [
+          "issuing_personal",
+          "issuing_shared",
+          "returning",
+          "location_list",
+        ],
         Viewer: [],
       };
 
       const getPermissions = () => {
-        const stored = localStorage.getItem(PERMISSIONS_KEY);
+        const stored = localStorage.getItem(permissionsKey);
         if (stored) {
           try {
             return JSON.parse(stored);
@@ -210,7 +247,7 @@
       };
 
       const savePermissions = (permissions) => {
-        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions));
+        localStorage.setItem(permissionsKey, JSON.stringify(permissions));
       };
 
       const renderPermissionChecklist = (role) => {
@@ -229,11 +266,40 @@
           `;
           permissionChecklist.appendChild(wrapper);
         });
+        permissionChecklist.dataset.initialSignature = getChecklistSignature();
+        updateSaveState();
       };
 
       rolePermissionSelect.addEventListener("change", () => {
         renderPermissionChecklist(rolePermissionSelect.value);
       });
+
+      const getChecklistState = () =>
+        Array.from(permissionChecklist.querySelectorAll("input")).map(
+          (input) => ({
+            key: input.value,
+            checked: input.checked,
+          })
+        );
+
+      const getChecklistSignature = () =>
+        JSON.stringify(getChecklistState());
+
+      const updateSaveState = () => {
+        const initialSignature =
+          permissionChecklist.dataset.initialSignature || "";
+        const currentSignature = getChecklistSignature();
+        if (!initialSignature) {
+          permissionChecklist.dataset.initialSignature = currentSignature;
+          savePermissionsBtn.disabled = true;
+          return;
+        }
+        savePermissionsBtn.disabled = initialSignature === currentSignature;
+      };
+
+      permissionChecklist.addEventListener("change", updateSaveState);
+      permissionChecklist.addEventListener("input", updateSaveState);
+      permissionChecklist.addEventListener("click", updateSaveState);
 
       rolePermissionsForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -244,6 +310,11 @@
         const permissions = getPermissions();
         permissions[selectedRole] = checked;
         savePermissions(permissions);
+        window.auditLog.logAudit(
+          "update_role_permissions",
+          `${selectedRole}: ${checked.join(", ") || "none"}`
+        );
+        savePermissionsBtn.disabled = true;
         window.location.reload();
       });
 
@@ -264,6 +335,7 @@
             <td>${user.name}</td>
             <td>${user.username}</td>
             <td>${user.role}</td>
+            <td>${user.location || "—"}</td>
             <td>
               <button class="secondary-button" data-remove="${index}">
                 Remove
@@ -297,6 +369,7 @@
         const name = String(formData.get("name") || "").trim();
         const username = String(formData.get("username") || "").trim();
         const role = String(formData.get("role") || "").trim();
+        const location = String(formData.get("location") || "").trim();
         const password = String(formData.get("password") || "").trim();
 
         if (!name || !username || !role || !password) {
@@ -304,10 +377,18 @@
         }
 
         const users = getUsers();
-        users.push({ name, username, role, password });
+        users.push({ name, username, role, location, password });
         saveUsers(users);
         renderUsers(users);
         userForm.reset();
+        window.auditLog.logAudit(
+          "create_user",
+          `${name} (${username}) ${location ? `@ ${location}` : ""}`
+        );
+
+        if (!localStorage.getItem("assetTrackingCurrentUser")) {
+          localStorage.setItem("assetTrackingCurrentUser", username);
+        }
       });
 
       userTableBody.addEventListener("click", (event) => {
@@ -322,9 +403,15 @@
         }
 
         const users = getUsers();
-        users.splice(Number(index), 1);
+        const removed = users.splice(Number(index), 1);
         saveUsers(users);
         renderUsers(users);
+        if (removed.length) {
+          window.auditLog.logAudit(
+            "remove_user",
+            `${removed[0].name} (${removed[0].username})`
+          );
+        }
       });
 
       renderPermissionChecklist(rolePermissionSelect.value);

@@ -78,6 +78,86 @@ body {
   gap: 16px;
 }
 
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 0.85rem;
+}
+
+.user-label {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+}
+
+.user-name {
+  font-weight: 600;
+}
+
+.text-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  width: min(900px, 94vw);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.status-toggle {
+  border: 1px solid rgba(2, 122, 72, 0.3);
+  background: rgba(2, 122, 72, 0.12);
+  color: #027a48;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.status-toggle.is-inactive {
+  border-color: rgba(180, 35, 24, 0.35);
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
 .icon-button {
   border: none;
   background: rgba(0, 0, 0, 0.04);
@@ -679,6 +759,10 @@ button:disabled {
   pointer-events: none;
 }
 
+.is-hidden {
+  display: none;
+}
+
 .permission-list {
   display: grid;
   gap: 12px;
@@ -818,6 +902,28 @@ button:disabled {
 
 .device-table tbody tr:hover {
   background: rgba(10, 132, 255, 0.04);
+}
+
+.device-table th.status-col,
+.device-table td.status-col,
+.device-table th.actions-col,
+.device-table td.actions-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.edit-button {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  border-color: rgba(10, 132, 255, 0.4);
 }
 
 .empty-row td {

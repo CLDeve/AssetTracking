@@ -14,17 +14,24 @@
       <nav class="topbar-nav">
         <a href="phone.html">Back to Phone</a>
         <a href="index.html">Dashboard</a>
+        <a href="login.html">Login</a>
+        <a href="location-list.html" data-permission="location_list">
+          Location list
+        </a>
         <a href="user-management.html" data-permission="user_management">
           User management
         </a>
+        <a href="audit-log.html" data-permission="user_management">Audit log</a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
           ⌕
         </button>
-        <button class="icon-button" type="button" aria-label="Account">
-          ◎
-        </button>
+        <div class="user-chip">
+          <span class="user-label">User</span>
+          <span class="user-name" data-current-user>Guest</span>
+        </div>
+        <a class="text-link" href="logout.html" data-logout-link>Logout</a>
       </div>
     </header>
 
@@ -80,6 +87,19 @@
               <option value="">Select type</option>
               <option value="Personal">Personal</option>
               <option value="Shared">Shared</option>
+            </select>
+          </label>
+
+          <label id="terminalField" class="is-hidden">
+            <span>Location</span>
+            <select name="deviceLocation">
+              <option value="">Select location</option>
+              <option value="Terminal 1">Terminal 1</option>
+              <option value="Terminal 2">Terminal 2</option>
+              <option value="Terminal 3">Terminal 3</option>
+              <option value="Terminal 4">Terminal 4</option>
+              <option value="Selatar">Selatar</option>
+              <option value="HR and Admin">HR and Admin</option>
             </select>
           </label>
 
@@ -176,7 +196,7 @@
                 <th>IMEI</th>
                 <th>Model</th>
                 <th>Type</th>
-                <th>Status</th>
+                <th>Location</th>
                 <th>Telco</th>
                 <th>Telco contract</th>
                 <th>Phone</th>
@@ -184,11 +204,13 @@
                 <th>Contract end</th>
                 <th>MDM</th>
                 <th>MDM expiry</th>
+                <th class="status-col">Status</th>
+                <th class="actions-col">Actions</th>
               </tr>
             </thead>
             <tbody id="deviceTableBody">
               <tr class="empty-row">
-                <td colspan="12">No devices registered yet.</td>
+                <td colspan="14">No devices registered yet.</td>
               </tr>
             </tbody>
           </table>
@@ -196,7 +218,105 @@
       </section>
 
     </main>
+    <div class="modal is-hidden" id="editModal" aria-hidden="true">
+      <div class="modal-content" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <h2>Edit device</h2>
+          <button class="icon-button" type="button" id="closeEditModal">
+            ✕
+          </button>
+        </div>
+        <form class="asset-form" id="editForm">
+          <label>
+            <span>Device ID</span>
+            <input type="text" name="deviceId" required />
+          </label>
+          <label>
+            <span>IMEI number</span>
+            <input type="text" name="imei" />
+          </label>
+          <label>
+            <span>Device model</span>
+            <input type="text" name="deviceModel" />
+          </label>
+          <label>
+            <span>Type</span>
+            <select name="deviceType">
+              <option value="">Select type</option>
+              <option value="Personal">Personal</option>
+              <option value="Shared">Shared</option>
+            </select>
+          </label>
+          <label id="editLocationField" class="is-hidden">
+            <span>Location</span>
+            <select name="deviceLocation">
+              <option value="">Select location</option>
+              <option value="Terminal 1">Terminal 1</option>
+              <option value="Terminal 2">Terminal 2</option>
+              <option value="Terminal 3">Terminal 3</option>
+              <option value="Terminal 4">Terminal 4</option>
+              <option value="Selatar">Selatar</option>
+              <option value="HR and Admin">HR and Admin</option>
+            </select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select name="deviceStatus">
+              <option value="">Select status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </label>
+          <label>
+            <span>Telco</span>
+            <select name="telco">
+              <option value="">Select telco</option>
+              <option value="singtel">Singtel</option>
+              <option value="starhub">StarHub</option>
+              <option value="m1">M1</option>
+              <option value="circles">circles.life</option>
+            </select>
+          </label>
+          <label>
+            <span>Telco contract number</span>
+            <input type="text" name="telcoContractNumber" />
+          </label>
+          <label>
+            <span>Phone number</span>
+            <input type="tel" name="phoneNumber" />
+          </label>
+          <label>
+            <span>Contract start date</span>
+            <input type="date" name="contractStart" />
+          </label>
+          <label>
+            <span>Contract end date</span>
+            <input type="date" name="contractEnd" />
+          </label>
+          <label>
+            <span>Mobile Device Management</span>
+            <select name="mdm">
+              <option value="">Select MDM</option>
+              <option value="soti">SOTI</option>
+              <option value="knox">KNOX</option>
+            </select>
+          </label>
+          <label>
+            <span>MDM expiry date</span>
+            <input type="date" name="mdmExpiry" />
+          </label>
+          <div class="form-actions">
+            <button class="secondary-button" type="button" id="cancelEdit">
+              Cancel
+            </button>
+            <button class="primary-button" type="submit">Save changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
     <script src="app-permissions.js"></script>
+    <script src="app-session.js"></script>
+    <script src="audit-log.js"></script>
     <script>
       const bulkUploadButton = document.getElementById("bulkUploadButton");
       const bulkUploadInput = document.getElementById("bulkUploadInput");
@@ -220,6 +340,7 @@
           "imei_number",
           "device_model",
           "device_type",
+          "device_location",
           "device_status",
           "telco",
           "telco_contract_number",
@@ -239,6 +360,7 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        window.auditLog.logAudit("download_template", "Register device template");
       });
 
       const formatDate = (value) => (value ? value : "—");
@@ -255,19 +377,20 @@
       const renderEmptyState = () => {
         deviceTableBody.innerHTML = `
           <tr class="empty-row">
-            <td colspan="11">No devices registered yet.</td>
+            <td colspan="14">No devices registered yet.</td>
           </tr>
         `;
       };
 
       const renderRow = (device) => {
         const row = document.createElement("tr");
+        const isActive = device.deviceStatus === "Active";
         row.innerHTML = `
           <td>${device.deviceId || "—"}</td>
           <td>${device.imei || "—"}</td>
           <td>${device.model || "—"}</td>
           <td>${device.deviceType || "—"}</td>
-          <td>${device.deviceStatus || "—"}</td>
+          <td>${device.deviceLocation || "—"}</td>
           <td>${device.telco || "—"}</td>
           <td>${device.telcoContractNumber || "—"}</td>
           <td>${device.phone || "—"}</td>
@@ -275,6 +398,24 @@
           <td>${formatDate(device.contractEnd)}</td>
           <td>${device.mdmText || "—"}</td>
           <td>${formatDate(device.mdmExpiry)}</td>
+          <td class="status-col">
+            <button
+              class="status-toggle ${isActive ? "" : "is-inactive"}"
+              type="button"
+              data-device-id="${device.deviceId || ""}"
+            >
+              ${device.deviceStatus || "Inactive"}
+            </button>
+          </td>
+          <td class="actions-col">
+            <button
+              class="edit-button"
+              type="button"
+              data-device-id="${device.deviceId || ""}"
+            >
+              Edit
+            </button>
+          </td>
         `;
         return row;
       };
@@ -315,6 +456,7 @@
           "IMEI",
           "Model",
           "Type",
+          "Location",
           "Status",
           "Telco",
           "Telco contract",
@@ -331,6 +473,7 @@
             device.imei || "",
             device.model || "",
             device.deviceType || "",
+            device.deviceLocation || "",
             device.deviceStatus || "",
             device.telco || "",
             device.telcoContractNumber || "",
@@ -354,6 +497,7 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        window.auditLog.logAudit("download_registered_devices", "CSV export");
       });
 
       deviceForm.addEventListener("submit", (event) => {
@@ -364,6 +508,7 @@
         const model = formData.get("deviceModel");
         const deviceType = formData.get("deviceType");
         const deviceStatus = formData.get("deviceStatus");
+        const deviceLocation = formData.get("deviceLocation");
         const telco = formData.get("telco");
         const telcoContractNumber = formData.get("telcoContractNumber");
         const phone = formData.get("phoneNumber");
@@ -388,6 +533,7 @@
           model,
           deviceType,
           deviceStatus,
+          deviceLocation,
           telco,
           telcoContractNumber,
           phone,
@@ -401,6 +547,180 @@
         saveDevices();
         deviceTableBody.prepend(renderRow(deviceRecord));
         deviceForm.reset();
+        window.auditLog.logAudit(
+          "register_device",
+          deviceId ? `Device ID ${deviceId}` : "Device registered"
+        );
+      });
+
+      const editModal = document.getElementById("editModal");
+      const editForm = document.getElementById("editForm");
+      const closeEditModal = document.getElementById("closeEditModal");
+      const cancelEdit = document.getElementById("cancelEdit");
+      const editLocationField = document.getElementById("editLocationField");
+      let editingDeviceId = null;
+
+      const toggleEditLocationField = () => {
+        const typeValue = editForm.deviceType.value;
+        editLocationField.classList.toggle("is-hidden", typeValue !== "Shared");
+        if (typeValue !== "Shared") {
+          editForm.deviceLocation.value = "";
+        }
+      };
+
+      const openEditModal = (device) => {
+        editingDeviceId = device.deviceId;
+        editForm.deviceId.value = device.deviceId || "";
+        editForm.imei.value = device.imei || "";
+        editForm.deviceModel.value = device.model || "";
+        editForm.deviceType.value = device.deviceType || "";
+        editForm.deviceLocation.value = device.deviceLocation || "";
+        editForm.deviceStatus.value = device.deviceStatus || "";
+        editForm.telco.value = device.telco || "";
+        editForm.telcoContractNumber.value = device.telcoContractNumber || "";
+        editForm.phoneNumber.value = device.phone || "";
+        editForm.contractStart.value = device.contractStart || "";
+        editForm.contractEnd.value = device.contractEnd || "";
+        editForm.mdm.value = device.mdmText ? device.mdmText.toLowerCase() : "";
+        editForm.mdmExpiry.value = device.mdmExpiry || "";
+        toggleEditLocationField();
+        editModal.classList.remove("is-hidden");
+        editModal.setAttribute("aria-hidden", "false");
+      };
+
+      const closeEdit = () => {
+        editModal.classList.add("is-hidden");
+        editModal.setAttribute("aria-hidden", "true");
+        editForm.reset();
+        editingDeviceId = null;
+      };
+
+      closeEditModal.addEventListener("click", closeEdit);
+      cancelEdit.addEventListener("click", closeEdit);
+      editForm.deviceType.addEventListener("change", toggleEditLocationField);
+
+      editForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const original = devices.find(
+          (item) => item.deviceId === editingDeviceId
+        );
+        const updated = {
+          deviceId: editForm.deviceId.value.trim(),
+          imei: editForm.imei.value.trim(),
+          model: editForm.deviceModel.value.trim(),
+          deviceType: editForm.deviceType.value,
+          deviceLocation: editForm.deviceLocation.value,
+          deviceStatus: editForm.deviceStatus.value,
+          telco: editForm.telco.value,
+          telcoContractNumber: editForm.telcoContractNumber.value.trim(),
+          phone: editForm.phoneNumber.value.trim(),
+          contractStart: editForm.contractStart.value,
+          contractEnd: editForm.contractEnd.value,
+          mdmText: editForm.mdm.value ? editForm.mdm.value.toUpperCase() : "",
+          mdmExpiry: editForm.mdmExpiry.value,
+        };
+
+        const index = devices.findIndex(
+          (item) => item.deviceId === editingDeviceId
+        );
+        if (index !== -1) {
+          devices[index] = updated;
+          saveDevices();
+          renderTable();
+          if (original) {
+            const changes = [];
+            const fields = [
+              ["imei", "IMEI"],
+              ["model", "Model"],
+              ["deviceType", "Type"],
+              ["deviceLocation", "Location"],
+              ["deviceStatus", "Status"],
+              ["telco", "Telco"],
+              ["telcoContractNumber", "Telco contract"],
+              ["phone", "Phone"],
+              ["contractStart", "Contract start"],
+              ["contractEnd", "Contract end"],
+              ["mdmText", "MDM"],
+              ["mdmExpiry", "MDM expiry"],
+            ];
+            fields.forEach(([key, label]) => {
+              const before = original[key] || "—";
+              const after = updated[key] || "—";
+              if (before !== after) {
+                changes.push(`${label}: ${before} → ${after}`);
+              }
+            });
+            window.auditLog.logAudit(
+              "update_device",
+              `${updated.deviceId || "Device"} ${
+                changes.length ? changes.join(", ") : "no changes"
+              }`
+            );
+          } else {
+            window.auditLog.logAudit(
+              "update_device",
+              updated.deviceId ? `Device ID ${updated.deviceId}` : "Device updated"
+            );
+          }
+        }
+        closeEdit();
+      });
+
+      deviceTableBody.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        const deviceId = target.getAttribute("data-device-id");
+        if (!deviceId) {
+          return;
+        }
+
+        const device = devices.find((item) => item.deviceId === deviceId);
+        if (!device) {
+          return;
+        }
+
+        if (target.classList.contains("status-toggle")) {
+          device.deviceStatus =
+            device.deviceStatus === "Active" ? "Inactive" : "Active";
+          saveDevices();
+          target.textContent = device.deviceStatus;
+          target.classList.toggle(
+            "is-inactive",
+            device.deviceStatus !== "Active"
+          );
+          window.auditLog.logAudit(
+            "toggle_device_status",
+            `${deviceId}: ${device.deviceStatus}`
+          );
+          return;
+        }
+
+        if (target.classList.contains("edit-button")) {
+          openEditModal(device);
+        }
+      });
+
+      const deviceTypeSelect = deviceForm.querySelector(
+        'select[name="deviceType"]'
+      );
+      const terminalField = document.getElementById("terminalField");
+
+      const updateTerminalField = () => {
+        const showTerminal = deviceTypeSelect.value === "Shared";
+        terminalField.classList.toggle("is-hidden", !showTerminal);
+        if (!showTerminal) {
+          terminalField.querySelector("select").value = "";
+        }
+      };
+
+      deviceTypeSelect.addEventListener("change", updateTerminalField);
+      updateTerminalField();
+
+      deviceForm.addEventListener("reset", () => {
+        updateTerminalField();
       });
 
       loadDevices();

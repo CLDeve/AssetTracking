@@ -14,17 +14,24 @@
       <nav class="topbar-nav">
         <a href="phone-issuing-assign.html">Back to Assign</a>
         <a href="phone-issuing.html">Issuing</a>
+        <a href="login.html">Login</a>
+        <a href="location-list.html" data-permission="location_list">
+          Location list
+        </a>
         <a href="user-management.html" data-permission="user_management">
           User management
         </a>
+        <a href="audit-log.html" data-permission="user_management">Audit log</a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
           ⌕
         </button>
-        <button class="icon-button" type="button" aria-label="Account">
-          ◎
-        </button>
+        <div class="user-chip">
+          <span class="user-label">User</span>
+          <span class="user-name" data-current-user>Guest</span>
+        </div>
+        <a class="text-link" href="logout.html" data-logout-link>Logout</a>
       </div>
     </header>
 
@@ -79,6 +86,8 @@
       </section>
     </main>
     <script src="app-permissions.js"></script>
+    <script src="app-session.js"></script>
+    <script src="audit-log.js"></script>
     <script>
       const staffPassInput = document.getElementById("staffPassInput");
       const deviceBarcodeInput = document.getElementById("deviceBarcodeInput");
@@ -167,6 +176,10 @@
         issuingMessage.textContent = "Device issued successfully.";
         issuingMessage.className = "form-message success";
         issuingForm.reset();
+        window.auditLog.logAudit(
+          "issue_personal",
+          `Device ID ${deviceBarcode} to ${staffPass}`
+        );
       });
 
       toggleDeviceBarcode();
