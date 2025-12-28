@@ -121,12 +121,13 @@
             <input
               type="email"
               name="username"
+              required
               placeholder="e.g. alex.tan@company.com"
             />
           </label>
           <label>
             <span>Role</span>
-            <select name="role">
+            <select name="role" required>
               <option value="Admin">Admin</option>
               <option value="Supervisor">Supervisor</option>
               <option value="Operator">Operator</option>
@@ -135,7 +136,12 @@
           </label>
           <label>
             <span>Password</span>
-            <input type="password" name="password" placeholder="Set password" />
+            <input
+              type="password"
+              name="password"
+              placeholder="Set password"
+              required
+            />
           </label>
           <fieldset class="location-group">
             <legend>Locations</legend>
@@ -167,7 +173,9 @@
             </div>
           </fieldset>
           <div class="form-actions">
-            <button class="primary-button" type="submit">Add user</button>
+            <button class="primary-button" type="submit" id="addUserButton" disabled>
+              Add user
+            </button>
           </div>
         </form>
         <div class="table-wrap">
@@ -209,6 +217,7 @@
       );
       const savePermissionsBtn = document.getElementById("savePermissionsBtn");
       const userForm = document.getElementById("userForm");
+      const addUserButton = document.getElementById("addUserButton");
       const userTableBody = document.getElementById("userTableBody");
 
       const PERMISSIONS = [
@@ -408,10 +417,27 @@
           locationChecklist
             .querySelectorAll("input")
             .forEach((input) => (input.checked = false));
+          updateUserSubmitState();
         } catch (error) {
           return;
         }
       });
+
+      const updateUserSubmitState = () => {
+        const formData = new FormData(userForm);
+        const username = String(formData.get("username") || "").trim();
+        const role = String(formData.get("role") || "").trim();
+        const password = String(formData.get("password") || "").trim();
+        const locationsSelected =
+          locationChecklist.querySelectorAll("input:checked").length > 0;
+        const valid =
+          Boolean(username) && Boolean(role) && Boolean(password) && locationsSelected;
+        addUserButton.disabled = !valid;
+      };
+
+      userForm.addEventListener("input", updateUserSubmitState);
+      userForm.addEventListener("change", updateUserSubmitState);
+      updateUserSubmitState();
 
       userTableBody.addEventListener("click", async (event) => {
         const target = event.target;
