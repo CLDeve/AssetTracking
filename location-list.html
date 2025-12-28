@@ -148,7 +148,7 @@
       let currentUser = null;
       let devices = [];
       let holdings = [];
-      let activeLocation = "";
+      let activeLocations = [];
 
       const ensureAuth = () => {
         if (!window.assetTrackingApi?.getToken()) {
@@ -174,7 +174,16 @@
       const loadHoldings = async () => {
         const data = await window.assetTrackingApi.apiFetch("/api/ops-holdings");
         holdings = data.holdings || [];
-        activeLocation = data.location || currentUser?.location || "";
+      };
+
+      const parseLocations = (value) =>
+        String(value || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      const loadUserLocations = () => {
+        activeLocations = parseLocations(currentUser?.location || "");
       };
 
       const renderEmptyRow = (tbody, message, colspan) => {
@@ -186,13 +195,14 @@
       };
 
       const renderTables = (activeUser) => {
-        const location = activeLocation || activeUser?.location || "";
+        const locationLabel = activeLocations.join(", ");
+        const locationSet = new Set(activeLocations);
         const holdingDeviceIds = new Set(
           holdings.map((hold) => String(hold.device_identifier || ""))
         );
         const pending = devices.filter(
           (device) =>
-            device.device_location === location &&
+            locationSet.has(device.device_location) &&
             !holdingDeviceIds.has(String(device.device_id || ""))
         );
 
@@ -234,7 +244,7 @@
       };
 
       const updateLocationHeader = (activeUser) => {
-        if (!activeUser || !activeLocation) {
+        if (!activeUser || !activeLocations.length) {
           locationTitle.textContent = "No active Ops user";
           locationSubtitle.textContent =
             "Create an Ops user with a location in User management.";
@@ -247,7 +257,7 @@
           return false;
         }
 
-        locationTitle.textContent = `${activeLocation} devices`;
+        locationTitle.textContent = `${locationLabel} devices`;
         activeUserInfo.textContent = `Active user: ${activeUser.name} (${activeUser.username})`;
         return true;
       };
@@ -276,7 +286,7 @@
           return;
         }
 
-        if (device.device_location !== activeLocation) {
+        if (!activeLocations.includes(device.device_location)) {
           locationScanMessage.textContent =
             "Device is not assigned to your location.";
           locationScanMessage.className = "form-message error";
@@ -314,6 +324,7 @@
       const initPage = async () => {
         if (!ensureAuth()) return;
         await loadCurrentUser();
+        loadUserLocations();
         await Promise.all([loadDevices(), loadHoldings()]);
         if (!updateLocationHeader(currentUser)) {
           return;

@@ -134,16 +134,33 @@
             </select>
           </label>
           <label>
-            <span>Location</span>
-            <select name="location">
-              <option value="">Select location</option>
-              <option value="Terminal 1">Terminal 1</option>
-              <option value="Terminal 2">Terminal 2</option>
-              <option value="Terminal 3">Terminal 3</option>
-              <option value="Terminal 4">Terminal 4</option>
-              <option value="Selatar">Selatar</option>
-              <option value="HR and Admin">HR and Admin</option>
-            </select>
+            <span>Locations</span>
+            <div class="permission-checklist" id="locationChecklist">
+              <label class="check-item">
+                <input type="checkbox" value="Terminal 1" />
+                <span>Terminal 1</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="Terminal 2" />
+                <span>Terminal 2</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="Terminal 3" />
+                <span>Terminal 3</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="Terminal 4" />
+                <span>Terminal 4</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="Selatar" />
+                <span>Selatar</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="HR and Admin" />
+                <span>HR and Admin</span>
+              </label>
+            </div>
           </label>
           <label>
             <span>Password</span>
@@ -159,8 +176,8 @@
               <tr>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Location</th>
-                <th>Actions</th>
+                <th>Locations</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
@@ -186,6 +203,7 @@
       const permissionChecklist = document.getElementById(
         "permissionChecklist"
       );
+      const locationChecklist = document.getElementById("locationChecklist");
       const rolePermissionsForm = document.getElementById(
         "rolePermissionsForm"
       );
@@ -331,14 +349,19 @@
         }
 
         users.forEach((user) => {
+          const isActive = user.is_active !== false;
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${user.username}</td>
             <td>${user.role}</td>
             <td>${user.location || "—"}</td>
             <td>
-              <button class="secondary-button" data-remove="${user.id}">
-                Remove
+              <button
+                class="status-toggle ${isActive ? "" : "is-inactive"}"
+                type="button"
+                data-user-id="${user.id}"
+              >
+                ${isActive ? "Active" : "Inactive"}
               </button>
             </td>
           `;
@@ -357,7 +380,10 @@
         const formData = new FormData(userForm);
         const username = String(formData.get("username") || "").trim();
         const role = String(formData.get("role") || "").trim();
-        const location = String(formData.get("location") || "").trim();
+        const locations = Array.from(
+          locationChecklist.querySelectorAll("input:checked")
+        ).map((input) => input.value);
+        const location = locations.join(", ");
         const password = String(formData.get("password") || "").trim();
 
         if (!username || !role || !password) {
@@ -379,6 +405,9 @@
           const users = await loadUsers();
           renderUsers(users);
           userForm.reset();
+          locationChecklist
+            .querySelectorAll("input")
+            .forEach((input) => (input.checked = false));
         } catch (error) {
           return;
         }
@@ -390,16 +419,20 @@
           return;
         }
 
-        const userId = target.getAttribute("data-remove");
+        const userId = target.getAttribute("data-user-id");
         if (!userId) {
           return;
         }
 
         if (!ensureAuth()) return;
         try {
+          const nextState = target.textContent.trim() !== "Active";
           await window.assetTrackingApi.apiFetch(
-            `/api/users/${encodeURIComponent(userId)}`,
-            { method: "DELETE" }
+            `/api/users/${encodeURIComponent(userId)}/status`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ isActive: nextState }),
+            }
           );
           const users = await loadUsers();
           renderUsers(users);

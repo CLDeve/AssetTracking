@@ -53,11 +53,18 @@ const logAudit = async (user, action, details) => {
   }
 };
 
-const getUserLocation = async (userId) => {
-  const result = await pool.query("SELECT location FROM users WHERE id = $1", [
-    userId,
-  ]);
-  return result.rows[0]?.location || null;
+const parseLocations = (value) =>
+  String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const getUserLocations = async (userId) => {
+  const result = await pool.query(
+    "SELECT location FROM users WHERE id = $1",
+    [userId]
+  );
+  return parseLocations(result.rows[0]?.location || "");
 };
 
 app.get("/api/health", async (_req, res) => {
@@ -104,6 +111,10 @@ app.post("/api/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
+  if (!user.is_active) {
+    return res.status(403).json({ error: "User inactive" });
+  }
+
   const matches = await bcrypt.compare(password, user.password_hash);
   if (!matches) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -114,15 +125,16 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.get("/api/me", auth, async (req, res) => {
-  const result = await pool.query("SELECT id, name, username, role, location FROM users WHERE id = $1", [
-    req.user.id,
-  ]);
+  const result = await pool.query(
+    "SELECT id, name, username, role, location, is_active FROM users WHERE id = $1",
+    [req.user.id]
+  );
   res.json({ user: result.rows[0] });
 });
 
 app.get("/api/users", auth, async (_req, res) => {
   const result = await pool.query(
-    "SELECT id, name, username, role, location, created_at FROM users ORDER BY id DESC"
+    "SELECT id, name, username, role, location, is_active, created_at FROM users ORDER BY id DESC"
   );
   res.json({ users: result.rows });
 });
@@ -135,8 +147,8 @@ app.post("/api/users", auth, async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const result = await pool.query(
-    "INSERT INTO users (name, username, role, location, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, username, role, location",
-    [name, username, role, location || null, passwordHash]
+    "INSERT INTO users (name, username, role, location, is_active, password_hash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, username, role, location, is_active",
+    [name, username, role, location || null, true, passwordHash]
   );
 
   await logAudit(req.user, "create_user", `Created ${username}`);
@@ -148,6 +160,21 @@ app.delete("/api/users/:id", auth, async (req, res) => {
   await pool.query("DELETE FROM users WHERE id = $1", [id]);
   await logAudit(req.user, "remove_user", `Removed user ${id}`);
   res.json({ ok: true });
+});
+
+app.patch("/api/users/:id/status", auth, async (req, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+  const result = await pool.query(
+    "UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, username, role, is_active",
+    [Boolean(isActive), id]
+  );
+  await logAudit(
+    req.user,
+    "update_user_status",
+    `User ${id} ${Boolean(isActive) ? "Active" : "Inactive"}`
+  );
+  res.json({ user: result.rows[0] });
 });
 
 app.get("/api/role-permissions", auth, async (_req, res) => {
@@ -316,17 +343,20 @@ app.post("/api/returns", auth, async (req, res) => {
 
 app.get("/api/ops-holdings", auth, async (req, res) => {
   const requestedLocation = req.query.location || null;
-  const userLocation = requestedLocation || (await getUserLocation(req.user.id));
+  const userLocations = requestedLocation
+    ? [requestedLocation]
+    : await getUserLocations(req.user.id);
+  const locationFilter = userLocations.length ? userLocations : null;
   const result = await pool.query(
     `SELECT ops_holdings.*, devices.device_id AS device_identifier, users.username
      FROM ops_holdings
      JOIN devices ON devices.id = ops_holdings.device_id
      LEFT JOIN users ON users.id = ops_holdings.user_id
-     WHERE ($1::text IS NULL OR ops_holdings.location = $1)
+     WHERE ($1::text[] IS NULL OR ops_holdings.location = ANY($1))
      ORDER BY ops_holdings.scanned_at DESC`,
-    [userLocation]
+    [locationFilter]
   );
-  res.json({ holdings: result.rows, location: userLocation });
+  res.json({ holdings: result.rows, location: locationFilter });
 });
 
 app.post("/api/ops-holdings", auth, async (req, res) => {
@@ -335,8 +365,8 @@ app.post("/api/ops-holdings", auth, async (req, res) => {
     return res.status(400).json({ error: "Missing deviceId" });
   }
 
-  const userLocation = await getUserLocation(req.user.id);
-  if (!userLocation) {
+  const userLocations = await getUserLocations(req.user.id);
+  if (!userLocations.length) {
     return res.status(400).json({ error: "User has no location assigned" });
   }
 
@@ -349,7 +379,7 @@ app.post("/api/ops-holdings", auth, async (req, res) => {
     return res.status(404).json({ error: "Device not found" });
   }
 
-  if (device.device_location !== userLocation) {
+  if (!userLocations.includes(device.device_location)) {
     return res.status(403).json({ error: "Device not in your location" });
   }
 
@@ -363,9 +393,13 @@ app.post("/api/ops-holdings", auth, async (req, res) => {
 
   const result = await pool.query(
     "INSERT INTO ops_holdings (device_id, location, user_id) VALUES ($1, $2, $3) RETURNING *",
-    [device.id, userLocation, req.user.id]
+    [device.id, device.device_location, req.user.id]
   );
-  await logAudit(req.user, "ops_scan", `Device ID ${deviceId} @ ${userLocation}`);
+  await logAudit(
+    req.user,
+    "ops_scan",
+    `Device ID ${deviceId} @ ${device.device_location}`
+  );
   res.json({ holding: result.rows[0] });
 });
 

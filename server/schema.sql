@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL,
   location TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
