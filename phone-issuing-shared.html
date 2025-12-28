@@ -84,6 +84,8 @@
         </form>
       </section>
     </main>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -91,11 +93,30 @@
       const sharedIssueForm = document.getElementById("sharedIssueForm");
       const sharedIssueMessage = document.getElementById("sharedIssueMessage");
       const sharedBarcodeInput = document.getElementById("sharedBarcodeInput");
-      const storageKey = "assetTrackingPhones";
-      const issueStorageKey = "assetTrackingPhoneIssues";
+      let devices = [];
+      let issues = [];
 
-      sharedIssueForm.addEventListener("submit", (event) => {
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
+
+      const loadDevices = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/devices");
+        devices = data.devices || [];
+      };
+
+      const loadIssues = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/issues");
+        issues = data.issues || [];
+      };
+
+      sharedIssueForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const formData = new FormData(sharedIssueForm);
         const teamName = String(formData.get("teamName") || "").trim();
         const deviceBarcode = String(formData.get("deviceBarcode") || "").trim();
@@ -119,11 +140,9 @@
           return;
         }
 
-        const stored = localStorage.getItem(storageKey);
-        const devices = stored ? JSON.parse(stored) : [];
         const match = devices.find(
           (device) =>
-            String(device.deviceId || "").toLowerCase() ===
+            String(device.device_id || "").toLowerCase() ===
             deviceBarcode.toLowerCase()
         );
 
@@ -134,11 +153,9 @@
           return;
         }
 
-        const issueStored = localStorage.getItem(issueStorageKey);
-        const issues = issueStored ? JSON.parse(issueStored) : [];
         const alreadyIssued = issues.some(
           (issue) =>
-            String(issue.deviceId || "").toLowerCase() ===
+            String(issue.device_identifier || "").toLowerCase() ===
             deviceBarcode.toLowerCase()
         );
 
@@ -148,22 +165,32 @@
           return;
         }
 
-        issues.push({
-          deviceId: deviceBarcode,
-          staffPass: teamName,
-          location,
-          issuedAt: new Date().toLocaleString(),
-        });
-        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
-
-        sharedIssueMessage.textContent = "Shared device issued successfully.";
-        sharedIssueMessage.className = "form-message success";
-        sharedIssueForm.reset();
-        window.auditLog.logAudit(
-          "issue_shared",
-          `Device ID ${deviceBarcode} to ${teamName} at ${location}`
-        );
+        try {
+          await window.assetTrackingApi.apiFetch("/api/issues", {
+            method: "POST",
+            body: JSON.stringify({
+              deviceId: deviceBarcode,
+              issuedTo: teamName,
+              issueType: "Shared",
+              location,
+            }),
+          });
+          sharedIssueMessage.textContent = "Shared device issued successfully.";
+          sharedIssueMessage.className = "form-message success";
+          sharedIssueForm.reset();
+          await loadIssues();
+        } catch (error) {
+          sharedIssueMessage.textContent = "Unable to issue device.";
+          sharedIssueMessage.className = "form-message error";
+        }
       });
+
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await Promise.all([loadDevices(), loadIssues()]);
+      };
+
+      initPage();
     </script>
   </body>
 </html>

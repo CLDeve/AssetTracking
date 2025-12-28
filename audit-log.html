@@ -73,6 +73,8 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -80,8 +82,8 @@
       const auditTableBody = document.getElementById("auditTableBody");
       const clearAuditButton = document.getElementById("clearAuditButton");
 
-      const renderAuditLogs = () => {
-        const logs = window.auditLog.getAuditLogs();
+      const renderAuditLogs = async () => {
+        const logs = await window.auditLog.fetchAuditLogs();
         auditTableBody.innerHTML = "";
         if (!logs.length) {
           auditTableBody.innerHTML = `
@@ -95,17 +97,17 @@
         logs.forEach((entry) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${entry.time}</td>
-            <td>${entry.role}</td>
+            <td>${entry.created_at ? String(entry.created_at).replace("T", " ").slice(0, 16) : "—"}</td>
+            <td>${entry.role || "—"}</td>
             <td>${entry.action}</td>
-            <td>${entry.details}</td>
+            <td>${entry.details || "—"}</td>
           `;
           auditTableBody.appendChild(row);
         });
       };
 
-      clearAuditButton.addEventListener("click", () => {
-        localStorage.removeItem("assetTrackingAuditLogs");
+      clearAuditButton.addEventListener("click", async () => {
+        await window.auditLog.clearAuditLogs();
         renderAuditLogs();
       });
 

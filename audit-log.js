@@ -1,38 +1,24 @@
-const AUDIT_LOG_KEY = "assetTrackingAuditLogs";
-const AUDIT_LOG_LIMIT = 200;
-
-const getAuditLogs = () => {
-  const stored = localStorage.getItem(AUDIT_LOG_KEY);
-  if (!stored) {
+const fetchAuditLogs = async () => {
+  if (!window.assetTrackingApi?.getToken()) {
     return [];
   }
 
   try {
-    return JSON.parse(stored);
+    const data = await window.assetTrackingApi.apiFetch("/api/audit");
+    return data.logs || [];
   } catch (error) {
     return [];
   }
 };
 
-const saveAuditLogs = (logs) => {
-  localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs));
-};
-
-const logAudit = (action, details) => {
-  const role = localStorage.getItem("assetTrackingRole") || "Admin";
-  const entry = {
-    time: new Date().toLocaleString(),
-    role,
-    action,
-    details,
-  };
-
-  const logs = getAuditLogs();
-  logs.unshift(entry);
-  saveAuditLogs(logs.slice(0, AUDIT_LOG_LIMIT));
+const clearAuditLogs = async () => {
+  if (!window.assetTrackingApi?.getToken()) {
+    return;
+  }
+  await window.assetTrackingApi.apiFetch("/api/audit", { method: "DELETE" });
 };
 
 window.auditLog = {
-  getAuditLogs,
-  logAudit,
+  fetchAuditLogs,
+  clearAuditLogs,
 };

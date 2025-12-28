@@ -114,6 +114,8 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -126,7 +128,15 @@
       const returnBarcodeBlock = document.getElementById("returnBarcodeBlock");
       const returnBarcodeHint = document.getElementById("returnBarcodeHint");
       const issuedDevicesBody = document.getElementById("issuedDevicesBody");
-      const issueStorageKey = "assetTrackingPhoneIssues";
+      let issues = [];
+
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
 
       const renderIssuedTable = (issues) => {
         issuedDevicesBody.innerHTML = "";
@@ -142,22 +152,18 @@
         issues.forEach((issue) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${issue.deviceId}</td>
-            <td>${issue.staffPass}</td>
-            <td>${issue.location}</td>
-            <td>${issue.issuedAt}</td>
+            <td>${issue.device_identifier}</td>
+            <td>${issue.issued_to || "—"}</td>
+            <td>${issue.location || "—"}</td>
+            <td>${issue.issued_at ? String(issue.issued_at).replace("T", " ").slice(0, 16) : "—"}</td>
           `;
           issuedDevicesBody.appendChild(row);
         });
       };
 
-      const loadIssues = () => {
-        const stored = localStorage.getItem(issueStorageKey);
-        return stored ? JSON.parse(stored) : [];
-      };
-
-      const saveIssues = (issues) => {
-        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
+      const loadIssues = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/issues");
+        issues = data.issues || [];
       };
 
       const toggleReturnBarcode = () => {
@@ -180,8 +186,9 @@
         });
       });
 
-      receivingForm.addEventListener("submit", (event) => {
+      receivingForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const receiverPass = receiverPassInput.value.trim();
         const deviceBarcode = receiveBarcodeInput.value.trim();
 
@@ -198,10 +205,9 @@
           return;
         }
 
-        const issues = loadIssues();
         const index = issues.findIndex(
           (issue) =>
-            String(issue.deviceId || "").toLowerCase() ===
+            String(issue.device_identifier || "").toLowerCase() ===
             deviceBarcode.toLowerCase()
         );
 
@@ -212,21 +218,30 @@
           return;
         }
 
-        issues.splice(index, 1);
-        saveIssues(issues);
-        renderIssuedTable(issues);
-
-        receivingMessage.textContent = "Device returned successfully.";
-        receivingMessage.className = "form-message success";
-        receivingForm.reset();
-        window.auditLog.logAudit(
-          "return_device",
-          `Device ID ${deviceBarcode} by ${receiverPass}`
-        );
+        try {
+          await window.assetTrackingApi.apiFetch("/api/returns", {
+            method: "POST",
+            body: JSON.stringify({ deviceId: deviceBarcode }),
+          });
+          await loadIssues();
+          renderIssuedTable(issues);
+          receivingMessage.textContent = "Device returned successfully.";
+          receivingMessage.className = "form-message success";
+          receivingForm.reset();
+        } catch (error) {
+          receivingMessage.textContent = "Unable to return device.";
+          receivingMessage.className = "form-message error";
+        }
       });
 
-      renderIssuedTable(loadIssues());
-      toggleReturnBarcode();
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await loadIssues();
+        renderIssuedTable(issues);
+        toggleReturnBarcode();
+      };
+
+      initPage();
     </script>
   </body>
 </html>

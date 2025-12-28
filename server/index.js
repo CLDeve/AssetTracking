@@ -53,6 +53,13 @@ const logAudit = async (user, action, details) => {
   }
 };
 
+const getUserLocation = async (userId) => {
+  const result = await pool.query("SELECT location FROM users WHERE id = $1", [
+    userId,
+  ]);
+  return result.rows[0]?.location || null;
+};
+
 app.get("/api/health", async (_req, res) => {
   res.json({ ok: true });
 });
@@ -268,6 +275,14 @@ app.post("/api/issues", auth, async (req, res) => {
     return res.status(404).json({ error: "Device not found" });
   }
 
+  const existingIssue = await pool.query(
+    "SELECT id FROM issues WHERE device_id = $1 AND returned_at IS NULL",
+    [device.rows[0].id]
+  );
+  if (existingIssue.rows[0]) {
+    return res.status(409).json({ error: "Device already issued" });
+  }
+
   const result = await pool.query(
     `INSERT INTO issues (device_id, issued_to, issue_type, location, issued_by_user_id)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -299,11 +314,71 @@ app.post("/api/returns", auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/ops-holdings", auth, async (req, res) => {
+  const requestedLocation = req.query.location || null;
+  const userLocation = requestedLocation || (await getUserLocation(req.user.id));
+  const result = await pool.query(
+    `SELECT ops_holdings.*, devices.device_id AS device_identifier, users.username
+     FROM ops_holdings
+     JOIN devices ON devices.id = ops_holdings.device_id
+     LEFT JOIN users ON users.id = ops_holdings.user_id
+     WHERE ($1::text IS NULL OR ops_holdings.location = $1)
+     ORDER BY ops_holdings.scanned_at DESC`,
+    [userLocation]
+  );
+  res.json({ holdings: result.rows, location: userLocation });
+});
+
+app.post("/api/ops-holdings", auth, async (req, res) => {
+  const { deviceId } = req.body;
+  if (!deviceId) {
+    return res.status(400).json({ error: "Missing deviceId" });
+  }
+
+  const userLocation = await getUserLocation(req.user.id);
+  if (!userLocation) {
+    return res.status(400).json({ error: "User has no location assigned" });
+  }
+
+  const deviceResult = await pool.query(
+    "SELECT id, device_location FROM devices WHERE device_id = $1",
+    [deviceId]
+  );
+  const device = deviceResult.rows[0];
+  if (!device) {
+    return res.status(404).json({ error: "Device not found" });
+  }
+
+  if (device.device_location !== userLocation) {
+    return res.status(403).json({ error: "Device not in your location" });
+  }
+
+  const existing = await pool.query(
+    "SELECT id FROM ops_holdings WHERE device_id = $1",
+    [device.id]
+  );
+  if (existing.rows[0]) {
+    return res.status(409).json({ error: "Device already scanned" });
+  }
+
+  const result = await pool.query(
+    "INSERT INTO ops_holdings (device_id, location, user_id) VALUES ($1, $2, $3) RETURNING *",
+    [device.id, userLocation, req.user.id]
+  );
+  await logAudit(req.user, "ops_scan", `Device ID ${deviceId} @ ${userLocation}`);
+  res.json({ holding: result.rows[0] });
+});
+
 app.get("/api/audit", auth, async (_req, res) => {
   const result = await pool.query(
     "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 200"
   );
   res.json({ logs: result.rows });
+});
+
+app.delete("/api/audit", auth, async (_req, res) => {
+  await pool.query("DELETE FROM audit_logs");
+  res.json({ ok: true });
 });
 
 const port = process.env.PORT || 3001;

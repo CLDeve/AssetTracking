@@ -85,6 +85,8 @@
         </form>
       </section>
     </main>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -96,8 +98,26 @@
       const deviceBarcodeHint = document.getElementById("deviceBarcodeHint");
       const issuingForm = document.getElementById("issuingForm");
       const issuingMessage = document.getElementById("issuingMessage");
-      const storageKey = "assetTrackingPhones";
-      const issueStorageKey = "assetTrackingPhoneIssues";
+      let devices = [];
+      let issues = [];
+
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
+
+      const loadDevices = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/devices");
+        devices = data.devices || [];
+      };
+
+      const loadIssues = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/issues");
+        issues = data.issues || [];
+      };
 
       const toggleDeviceBarcode = () => {
         const hasStaffPass = staffPassInput.value.trim().length > 0;
@@ -119,8 +139,9 @@
         });
       });
 
-      issuingForm.addEventListener("submit", (event) => {
+      issuingForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const staffPass = staffPassInput.value.trim();
         const deviceBarcode = deviceBarcodeInput.value.trim();
 
@@ -136,11 +157,9 @@
           return;
         }
 
-        const stored = localStorage.getItem(storageKey);
-        const devices = stored ? JSON.parse(stored) : [];
         const match = devices.find(
           (device) =>
-            String(device.deviceId || "").toLowerCase() ===
+            String(device.device_id || "").toLowerCase() ===
             deviceBarcode.toLowerCase()
         );
 
@@ -151,11 +170,9 @@
           return;
         }
 
-        const issueStored = localStorage.getItem(issueStorageKey);
-        const issues = issueStored ? JSON.parse(issueStored) : [];
         const alreadyIssued = issues.some(
           (issue) =>
-            String(issue.deviceId || "").toLowerCase() ===
+            String(issue.device_identifier || "").toLowerCase() ===
             deviceBarcode.toLowerCase()
         );
 
@@ -165,24 +182,33 @@
           return;
         }
 
-        issues.push({
-          deviceId: deviceBarcode,
-          staffPass,
-          location: "Personal",
-          issuedAt: new Date().toLocaleString(),
-        });
-        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
-
-        issuingMessage.textContent = "Device issued successfully.";
-        issuingMessage.className = "form-message success";
-        issuingForm.reset();
-        window.auditLog.logAudit(
-          "issue_personal",
-          `Device ID ${deviceBarcode} to ${staffPass}`
-        );
+        try {
+          await window.assetTrackingApi.apiFetch("/api/issues", {
+            method: "POST",
+            body: JSON.stringify({
+              deviceId: deviceBarcode,
+              issuedTo: staffPass,
+              issueType: "Personal",
+              location: "Personal",
+            }),
+          });
+          issuingMessage.textContent = "Device issued successfully.";
+          issuingMessage.className = "form-message success";
+          issuingForm.reset();
+          await loadIssues();
+        } catch (error) {
+          issuingMessage.textContent = "Unable to issue device.";
+          issuingMessage.className = "form-message error";
+        }
       });
 
-      toggleDeviceBarcode();
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await Promise.all([loadDevices(), loadIssues()]);
+        toggleDeviceBarcode();
+      };
+
+      initPage();
     </script>
   </body>
 </html>

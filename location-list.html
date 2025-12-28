@@ -127,15 +127,12 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
     <script>
-      const USERS_KEY = "assetTrackingUsers";
-      const DEVICES_KEY = "assetTrackingPhones";
-      const HOLDINGS_KEY = "assetTrackingOpsHoldings";
-      const CURRENT_USER_KEY = "assetTrackingCurrentUser";
-
       const locationTitle = document.getElementById("locationTitle");
       const locationSubtitle = document.getElementById("locationSubtitle");
       const activeUserInfo = document.getElementById("activeUserInfo");
@@ -144,55 +141,36 @@
       const locationScanMessage = document.getElementById("locationScanMessage");
       const pendingBody = document.getElementById("pendingBody");
       const holdingBody = document.getElementById("holdingBody");
+      let currentUser = null;
+      let devices = [];
+      let holdings = [];
+      let activeLocation = "";
 
-      const getUsers = () => {
-        const stored = localStorage.getItem(USERS_KEY);
-        if (!stored) return [];
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          return [];
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
         }
+        return true;
       };
 
-      const getDevices = () => {
-        const stored = localStorage.getItem(DEVICES_KEY);
-        if (!stored) return [];
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          return [];
-        }
+      const loadCurrentUser = async () => {
+        currentUser = window.assetTrackingApi.getStoredUser();
+        if (currentUser) return;
+        const data = await window.assetTrackingApi.apiFetch("/api/me");
+        currentUser = data.user;
+        window.assetTrackingApi.setStoredUser(currentUser);
       };
 
-      const getHoldings = () => {
-        const stored = localStorage.getItem(HOLDINGS_KEY);
-        if (!stored) return [];
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          return [];
-        }
+      const loadDevices = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/devices");
+        devices = data.devices || [];
       };
 
-      const saveHoldings = (holdings) => {
-        localStorage.setItem(HOLDINGS_KEY, JSON.stringify(holdings));
-      };
-
-      const resolveActiveUser = () => {
-        const users = getUsers();
-        if (!users.length) return null;
-
-        const storedUser = localStorage.getItem(CURRENT_USER_KEY);
-        if (storedUser) {
-          const match = users.find((user) => user.username === storedUser);
-          if (match) return match;
-        }
-
-        const opsUser = users.find((user) => user.role === "Operator");
-        const active = opsUser || users[0];
-        localStorage.setItem(CURRENT_USER_KEY, active.username);
-        return active;
+      const loadHoldings = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/ops-holdings");
+        holdings = data.holdings || [];
+        activeLocation = data.location || currentUser?.location || "";
       };
 
       const renderEmptyRow = (tbody, message, colspan) => {
@@ -204,18 +182,18 @@
       };
 
       const renderTables = (activeUser) => {
-        const devices = getDevices();
-        const holdings = getHoldings();
-
-        const location = activeUser?.location || "";
+        const location = activeLocation || activeUser?.location || "";
+        const holdingDeviceIds = new Set(
+          holdings.map((hold) => String(hold.device_identifier || ""))
+        );
         const pending = devices.filter(
           (device) =>
-            device.deviceLocation === location &&
-            !holdings.some((hold) => hold.deviceId === device.deviceId)
+            device.device_location === location &&
+            !holdingDeviceIds.has(String(device.device_id || ""))
         );
 
         const withMe = holdings.filter(
-          (hold) => hold.username === activeUser?.username
+          (hold) => hold.user_id === activeUser?.id
         );
 
         pendingBody.innerHTML = "";
@@ -225,10 +203,10 @@
           pending.forEach((device) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${device.deviceId || "—"}</td>
-              <td>${device.deviceType || "—"}</td>
-              <td>${device.deviceStatus || "—"}</td>
-              <td>${device.deviceLocation || "—"}</td>
+              <td>${device.device_id || "—"}</td>
+              <td>${device.device_type || "—"}</td>
+              <td>${device.device_status || "—"}</td>
+              <td>${device.device_location || "—"}</td>
             `;
             pendingBody.appendChild(row);
           });
@@ -241,37 +219,39 @@
           withMe.forEach((hold) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${hold.deviceId}</td>
-              <td>${hold.username}</td>
-              <td>${hold.location}</td>
-              <td>${hold.scannedAt}</td>
+              <td>${hold.device_identifier || "—"}</td>
+              <td>${hold.username || "—"}</td>
+              <td>${hold.location || "—"}</td>
+              <td>${hold.scanned_at ? String(hold.scanned_at).replace("T", " ").slice(0, 16) : "—"}</td>
             `;
             holdingBody.appendChild(row);
           });
         }
       };
 
-      const activeUser = resolveActiveUser();
+      const updateLocationHeader = (activeUser) => {
+        if (!activeUser || !activeLocation) {
+          locationTitle.textContent = "No active Ops user";
+          locationSubtitle.textContent =
+            "Create an Ops user with a location in User management.";
+          activeUserInfo.textContent = "";
+          locationScanForm.querySelectorAll("input, button").forEach((el) => {
+            el.disabled = true;
+          });
+          renderEmptyRow(pendingBody, "No pending devices.", 4);
+          renderEmptyRow(holdingBody, "No devices scanned yet.", 4);
+          return false;
+        }
 
-      if (!activeUser || !activeUser.location) {
-        locationTitle.textContent = "No active Ops user";
-        locationSubtitle.textContent =
-          "Create an Ops user with a location in User management.";
-        activeUserInfo.textContent = "";
-        locationScanForm.querySelectorAll("input, button").forEach((el) => {
-          el.disabled = true;
-        });
-        renderEmptyRow(pendingBody, "No pending devices.", 4);
-        renderEmptyRow(holdingBody, "No devices scanned yet.", 4);
-      } else {
-        locationTitle.textContent = `${activeUser.location} devices`;
+        locationTitle.textContent = `${activeLocation} devices`;
         activeUserInfo.textContent = `Active user: ${activeUser.name} (${activeUser.username})`;
-        renderTables(activeUser);
-      }
+        return true;
+      };
 
-      locationScanForm.addEventListener("submit", (event) => {
+      locationScanForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (!activeUser) return;
+        if (!ensureAuth()) return;
+        if (!currentUser) return;
 
         const barcode = locationScanInput.value.trim();
         if (!barcode) {
@@ -280,10 +260,9 @@
           return;
         }
 
-        const devices = getDevices();
         const device = devices.find(
           (item) =>
-            String(item.deviceId || "").toLowerCase() === barcode.toLowerCase()
+            String(item.device_id || "").toLowerCase() === barcode.toLowerCase()
         );
 
         if (!device) {
@@ -293,17 +272,17 @@
           return;
         }
 
-        if (device.deviceLocation !== activeUser.location) {
+        if (device.device_location !== activeLocation) {
           locationScanMessage.textContent =
             "Device is not assigned to your location.";
           locationScanMessage.className = "form-message error";
           return;
         }
 
-        const holdings = getHoldings();
         const alreadyHeld = holdings.some(
           (hold) =>
-            String(hold.deviceId || "").toLowerCase() === barcode.toLowerCase()
+            String(hold.device_identifier || "").toLowerCase() ===
+            barcode.toLowerCase()
         );
 
         if (alreadyHeld) {
@@ -312,23 +291,33 @@
           return;
         }
 
-        holdings.push({
-          deviceId: device.deviceId,
-          username: activeUser.username,
-          location: activeUser.location,
-          scannedAt: new Date().toLocaleString(),
-        });
-        saveHoldings(holdings);
-        renderTables(activeUser);
-
-        locationScanMessage.textContent = "Device moved to 'With me now'.";
-        locationScanMessage.className = "form-message success";
-        locationScanForm.reset();
-        window.auditLog.logAudit(
-          "ops_scan",
-          `${device.deviceId} @ ${activeUser.location}`
-        );
+        try {
+          await window.assetTrackingApi.apiFetch("/api/ops-holdings", {
+            method: "POST",
+            body: JSON.stringify({ deviceId: barcode }),
+          });
+          await loadHoldings();
+          renderTables(currentUser);
+          locationScanMessage.textContent = "Device moved to 'With me now'.";
+          locationScanMessage.className = "form-message success";
+          locationScanForm.reset();
+        } catch (error) {
+          locationScanMessage.textContent = "Unable to scan device.";
+          locationScanMessage.className = "form-message error";
+        }
       });
+
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await loadCurrentUser();
+        await Promise.all([loadDevices(), loadHoldings()]);
+        if (!updateLocationHeader(currentUser)) {
+          return;
+        }
+        renderTables(currentUser);
+      };
+
+      initPage();
     </script>
   </body>
 </html>

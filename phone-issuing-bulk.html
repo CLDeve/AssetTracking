@@ -103,6 +103,8 @@
         </div>
       </section>
     </main>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -110,8 +112,26 @@
       const bulkIssueForm = document.getElementById("bulkIssueForm");
       const bulkIssueBody = document.getElementById("bulkIssueBody");
       const bulkIssueMessage = document.getElementById("bulkIssueMessage");
-      const storageKey = "assetTrackingPhones";
-      const issueStorageKey = "assetTrackingPhoneIssues";
+      let devices = [];
+      let issues = [];
+
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
+
+      const loadDevices = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/devices");
+        devices = data.devices || [];
+      };
+
+      const loadIssues = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/issues");
+        issues = data.issues || [];
+      };
 
       const renderBulkIssueRow = (entry) => {
         const row = document.createElement("tr");
@@ -127,8 +147,9 @@
         return row;
       };
 
-      bulkIssueForm.addEventListener("submit", (event) => {
+      bulkIssueForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const formData = new FormData(bulkIssueForm);
         const receiverPass = String(
           formData.get("bulkReceiverPass") || ""
@@ -162,59 +183,62 @@
           return;
         }
 
-        const stored = localStorage.getItem(storageKey);
-        const devices = stored ? JSON.parse(stored) : [];
-        const issueStored = localStorage.getItem(issueStorageKey);
-        const issues = issueStored ? JSON.parse(issueStored) : [];
+        const results = [];
 
-        const results = deviceIds.map((deviceId) => {
+        for (const deviceId of deviceIds) {
           const match = devices.find(
             (device) =>
-              String(device.deviceId || "").toLowerCase() ===
+              String(device.device_id || "").toLowerCase() ===
               deviceId.toLowerCase()
           );
 
           if (!match) {
-            return {
+            results.push({
               deviceId,
               status: "blocked",
               note: "Not in master list.",
-            };
+            });
+            continue;
           }
 
           const alreadyIssued = issues.some(
             (issue) =>
-              String(issue.deviceId || "").toLowerCase() ===
+              String(issue.device_identifier || "").toLowerCase() ===
               deviceId.toLowerCase()
           );
 
           if (alreadyIssued) {
-            return {
+            results.push({
               deviceId,
               status: "blocked",
               note: "Already issued out.",
-            };
+            });
+            continue;
           }
 
-          return {
-            deviceId,
-            status: "issued",
-            note: `Issued to ${receiverPass} at ${location}.`,
-          };
-        });
-
-        results
-          .filter((entry) => entry.status === "issued")
-          .forEach((entry) => {
-            issues.push({
-              deviceId: entry.deviceId,
-              staffPass: receiverPass,
-              location,
-              issuedAt: new Date().toLocaleString(),
+          try {
+            await window.assetTrackingApi.apiFetch("/api/issues", {
+              method: "POST",
+              body: JSON.stringify({
+                deviceId,
+                issuedTo: receiverPass,
+                issueType: "Bulk",
+                location,
+              }),
             });
-          });
-
-        localStorage.setItem(issueStorageKey, JSON.stringify(issues));
+            results.push({
+              deviceId,
+              status: "issued",
+              note: `Issued to ${receiverPass} at ${location}.`,
+            });
+          } catch (error) {
+            results.push({
+              deviceId,
+              status: "blocked",
+              note: "Issue failed.",
+            });
+          }
+        }
 
         bulkIssueBody.innerHTML = "";
         results.forEach((entry) => {
@@ -226,11 +250,15 @@
         ).length;
         const issuedCount = results.length - blockedCount;
         bulkIssueMessage.textContent = `Issued ${issuedCount} device(s). Blocked ${blockedCount}.`;
-        window.auditLog.logAudit(
-          "issue_bulk",
-          `Issued ${issuedCount}, blocked ${blockedCount} at ${location}`
-        );
+        await loadIssues();
       });
+
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await Promise.all([loadDevices(), loadIssues()]);
+      };
+
+      initPage();
     </script>
   </body>
 </html>

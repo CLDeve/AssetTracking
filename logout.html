@@ -17,6 +17,8 @@
       </section>
     </main>
     <script>
+      localStorage.removeItem("assetTrackingToken");
+      localStorage.removeItem("assetTrackingUser");
       localStorage.removeItem("assetTrackingCurrentUser");
       localStorage.removeItem("assetTrackingRole");
       window.location.href = "login.html";

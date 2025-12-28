@@ -314,6 +314,8 @@
         </form>
       </div>
     </div>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
@@ -327,8 +329,15 @@
       const deviceTableBody = document.getElementById("deviceTableBody");
       const deviceSearchInput = document.getElementById("deviceSearchInput");
       const downloadCsvButton = document.getElementById("downloadCsvButton");
-      const storageKey = "assetTrackingPhones";
       let devices = [];
+
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
 
       bulkUploadButton.addEventListener("click", () => {
         bulkUploadInput.click();
@@ -360,18 +369,34 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        window.auditLog.logAudit("download_template", "Register device template");
       });
 
       const formatDate = (value) => (value ? value : "—");
 
-      const saveDevices = () => {
-        localStorage.setItem(storageKey, JSON.stringify(devices));
-      };
+      const normalizeDate = (value) =>
+        value ? String(value).slice(0, 10) : "";
 
-      const loadDevices = () => {
-        const stored = localStorage.getItem(storageKey);
-        devices = stored ? JSON.parse(stored) : [];
+      const mapDevice = (device) => ({
+        id: device.id,
+        deviceId: device.device_id,
+        imei: device.imei,
+        model: device.model,
+        deviceType: device.device_type,
+        deviceStatus: device.device_status,
+        deviceLocation: device.device_location,
+        telco: device.telco,
+        telcoContractNumber: device.telco_contract_number,
+        phone: device.phone,
+        contractStart: normalizeDate(device.contract_start),
+        contractEnd: normalizeDate(device.contract_end),
+        mdmText: device.mdm ? device.mdm.toUpperCase() : "",
+        mdmExpiry: normalizeDate(device.mdm_expiry),
+      });
+
+      const fetchDevices = async () => {
+        if (!ensureAuth()) return;
+        const data = await window.assetTrackingApi.apiFetch("/api/devices");
+        devices = (data.devices || []).map(mapDevice);
       };
 
       const renderEmptyState = () => {
@@ -402,7 +427,7 @@
             <button
               class="status-toggle ${isActive ? "" : "is-inactive"}"
               type="button"
-              data-device-id="${device.deviceId || ""}"
+              data-device-id="${device.id || ""}"
             >
               ${device.deviceStatus || "Inactive"}
             </button>
@@ -411,7 +436,7 @@
             <button
               class="edit-button"
               type="button"
-              data-device-id="${device.deviceId || ""}"
+              data-device-id="${device.id || ""}"
             >
               Edit
             </button>
@@ -497,11 +522,11 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        window.auditLog.logAudit("download_registered_devices", "CSV export");
       });
 
-      deviceForm.addEventListener("submit", (event) => {
+      deviceForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const formData = new FormData(deviceForm);
         const deviceId = formData.get("deviceId");
         const imei = formData.get("imei");
@@ -519,14 +544,6 @@
 
         const mdmText = mdm ? mdm.toUpperCase() : "";
 
-        if (deviceTableBody.querySelector(".empty-row")) {
-          deviceTableBody.innerHTML = "";
-        }
-
-        if (deviceTableBody.querySelector(".empty-row")) {
-          deviceTableBody.innerHTML = "";
-        }
-
         const deviceRecord = {
           deviceId,
           imei,
@@ -539,18 +556,21 @@
           phone,
           contractStart,
           contractEnd,
-          mdmText,
+          mdm,
           mdmExpiry,
         };
 
-        devices.unshift(deviceRecord);
-        saveDevices();
-        deviceTableBody.prepend(renderRow(deviceRecord));
-        deviceForm.reset();
-        window.auditLog.logAudit(
-          "register_device",
-          deviceId ? `Device ID ${deviceId}` : "Device registered"
-        );
+        try {
+          const data = await window.assetTrackingApi.apiFetch("/api/devices", {
+            method: "POST",
+            body: JSON.stringify(deviceRecord),
+          });
+          devices.unshift(mapDevice(data.device));
+          renderTable();
+          deviceForm.reset();
+        } catch (error) {
+          return;
+        }
       });
 
       const editModal = document.getElementById("editModal");
@@ -569,7 +589,7 @@
       };
 
       const openEditModal = (device) => {
-        editingDeviceId = device.deviceId;
+        editingDeviceId = device.id;
         editForm.deviceId.value = device.deviceId || "";
         editForm.imei.value = device.imei || "";
         editForm.deviceModel.value = device.model || "";
@@ -599,11 +619,9 @@
       cancelEdit.addEventListener("click", closeEdit);
       editForm.deviceType.addEventListener("change", toggleEditLocationField);
 
-      editForm.addEventListener("submit", (event) => {
+      editForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const original = devices.find(
-          (item) => item.deviceId === editingDeviceId
-        );
+        if (!ensureAuth()) return;
         const updated = {
           deviceId: editForm.deviceId.value.trim(),
           imei: editForm.imei.value.trim(),
@@ -616,57 +634,32 @@
           phone: editForm.phoneNumber.value.trim(),
           contractStart: editForm.contractStart.value,
           contractEnd: editForm.contractEnd.value,
-          mdmText: editForm.mdm.value ? editForm.mdm.value.toUpperCase() : "",
+          mdm: editForm.mdm.value,
           mdmExpiry: editForm.mdmExpiry.value,
         };
 
-        const index = devices.findIndex(
-          (item) => item.deviceId === editingDeviceId
-        );
-        if (index !== -1) {
-          devices[index] = updated;
-          saveDevices();
-          renderTable();
-          if (original) {
-            const changes = [];
-            const fields = [
-              ["imei", "IMEI"],
-              ["model", "Model"],
-              ["deviceType", "Type"],
-              ["deviceLocation", "Location"],
-              ["deviceStatus", "Status"],
-              ["telco", "Telco"],
-              ["telcoContractNumber", "Telco contract"],
-              ["phone", "Phone"],
-              ["contractStart", "Contract start"],
-              ["contractEnd", "Contract end"],
-              ["mdmText", "MDM"],
-              ["mdmExpiry", "MDM expiry"],
-            ];
-            fields.forEach(([key, label]) => {
-              const before = original[key] || "—";
-              const after = updated[key] || "—";
-              if (before !== after) {
-                changes.push(`${label}: ${before} → ${after}`);
-              }
-            });
-            window.auditLog.logAudit(
-              "update_device",
-              `${updated.deviceId || "Device"} ${
-                changes.length ? changes.join(", ") : "no changes"
-              }`
-            );
-          } else {
-            window.auditLog.logAudit(
-              "update_device",
-              updated.deviceId ? `Device ID ${updated.deviceId}` : "Device updated"
-            );
+        try {
+          const data = await window.assetTrackingApi.apiFetch(
+            `/api/devices/${encodeURIComponent(editingDeviceId)}`,
+            {
+              method: "PUT",
+              body: JSON.stringify(updated),
+            }
+          );
+          const index = devices.findIndex(
+            (item) => item.id === editingDeviceId
+          );
+          if (index !== -1) {
+            devices[index] = mapDevice(data.device);
+            renderTable();
           }
+          closeEdit();
+        } catch (error) {
+          return;
         }
-        closeEdit();
       });
 
-      deviceTableBody.addEventListener("click", (event) => {
+      deviceTableBody.addEventListener("click", async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLButtonElement)) {
           return;
@@ -677,24 +670,33 @@
           return;
         }
 
-        const device = devices.find((item) => item.deviceId === deviceId);
+        const device = devices.find((item) => String(item.id) === deviceId);
         if (!device) {
           return;
         }
 
         if (target.classList.contains("status-toggle")) {
-          device.deviceStatus =
+          if (!ensureAuth()) return;
+          const nextStatus =
             device.deviceStatus === "Active" ? "Inactive" : "Active";
-          saveDevices();
-          target.textContent = device.deviceStatus;
-          target.classList.toggle(
-            "is-inactive",
-            device.deviceStatus !== "Active"
-          );
-          window.auditLog.logAudit(
-            "toggle_device_status",
-            `${deviceId}: ${device.deviceStatus}`
-          );
+          try {
+            const data = await window.assetTrackingApi.apiFetch(
+              `/api/devices/${encodeURIComponent(device.id)}/status`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({ status: nextStatus }),
+              }
+            );
+            const updated = mapDevice(data.device);
+            device.deviceStatus = updated.deviceStatus;
+            target.textContent = updated.deviceStatus || "Inactive";
+            target.classList.toggle(
+              "is-inactive",
+              updated.deviceStatus !== "Active"
+            );
+          } catch (error) {
+            return;
+          }
           return;
         }
 
@@ -723,8 +725,91 @@
         updateTerminalField();
       });
 
-      loadDevices();
-      renderTable();
+      const parseCsvLine = (line) => {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          if (char === '"' && line[i + 1] === '"') {
+            current += '"';
+            i += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+          current += char;
+        }
+        values.push(current);
+        return values.map((value) => value.trim());
+      };
+
+      bulkUploadInput.addEventListener("change", async () => {
+        if (!ensureAuth()) return;
+        const file = bulkUploadInput.files?.[0];
+        if (!file) return;
+        const text = await file.text();
+        const rows = text.split(/\r?\n/).filter(Boolean);
+        if (!rows.length) return;
+        const headers = parseCsvLine(rows.shift()).map((header) =>
+          header.toLowerCase()
+        );
+        const fieldMap = {
+          device_id: "deviceId",
+          imei_number: "imei",
+          device_model: "model",
+          device_type: "deviceType",
+          device_location: "deviceLocation",
+          device_status: "deviceStatus",
+          telco: "telco",
+          telco_contract_number: "telcoContractNumber",
+          phone_number: "phone",
+          contract_start_date: "contractStart",
+          contract_end_date: "contractEnd",
+          mdm: "mdm",
+          mdm_expiry_date: "mdmExpiry",
+        };
+
+        for (const line of rows) {
+          const values = parseCsvLine(line);
+          if (!values.length) continue;
+          const payload = {};
+          headers.forEach((header, index) => {
+            const key = fieldMap[header];
+            if (!key) return;
+            payload[key] = values[index] || "";
+          });
+          if (!payload.deviceId) continue;
+          try {
+            await window.assetTrackingApi.apiFetch("/api/devices", {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+          } catch (error) {
+            continue;
+          }
+        }
+
+        await fetchDevices();
+        renderTable();
+        bulkUploadInput.value = "";
+      });
+
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await fetchDevices();
+        renderTable();
+      };
+
+      initPage();
     </script>
   </body>
 </html>

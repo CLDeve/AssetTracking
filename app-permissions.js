@@ -25,49 +25,52 @@ const ROLE_PERMISSIONS_DEFAULT = {
   Viewer: [],
 };
 
-const ROLE_KEY = "assetTrackingRole";
-const PERMISSIONS_KEY = "assetTrackingRolePermissions";
+const getCurrentRole = () => {
+  if (!window.assetTrackingApi) {
+    return "Viewer";
+  }
+  const user = window.assetTrackingApi.getStoredUser();
+  return user?.role || "Viewer";
+};
 
-const resolveRoleFromUser = () => {
-  const currentUser = localStorage.getItem("assetTrackingCurrentUser");
-  if (!currentUser) {
-    return null;
+const normalizePermissions = (roles) => {
+  const map = { ...ROLE_PERMISSIONS_DEFAULT };
+  roles.forEach((roleEntry) => {
+    if (!roleEntry?.role) return;
+    map[roleEntry.role] = roleEntry.permissions || [];
+  });
+  return map;
+};
+
+let cachedPermissions = null;
+
+const getRolePermissions = async () => {
+  if (cachedPermissions) {
+    return cachedPermissions;
+  }
+  if (!window.assetTrackingApi) {
+    cachedPermissions = ROLE_PERMISSIONS_DEFAULT;
+    return cachedPermissions;
   }
 
   try {
-    const storedUsers = localStorage.getItem("assetTrackingUsers");
-    const users = storedUsers ? JSON.parse(storedUsers) : [];
-    const match = users.find((user) => user.username === currentUser);
-    return match ? match.role : null;
+    const data = await window.assetTrackingApi.apiFetch("/api/role-permissions");
+    cachedPermissions = normalizePermissions(data.roles || []);
+    return cachedPermissions;
   } catch (error) {
-    return null;
+    cachedPermissions = ROLE_PERMISSIONS_DEFAULT;
+    return cachedPermissions;
   }
 };
 
-const getCurrentRole = () =>
-  resolveRoleFromUser() || localStorage.getItem(ROLE_KEY) || "Admin";
-
-const getRolePermissions = () => {
-  const stored = localStorage.getItem(PERMISSIONS_KEY);
-  if (!stored) {
-    return ROLE_PERMISSIONS_DEFAULT;
-  }
-
-  try {
-    return JSON.parse(stored);
-  } catch (error) {
-    return ROLE_PERMISSIONS_DEFAULT;
-  }
-};
-
-const canAccess = (role, permission) => {
-  const rolePermissions = getRolePermissions();
+const canAccess = async (role, permission) => {
+  const rolePermissions = await getRolePermissions();
   return (rolePermissions[role] || []).includes(permission);
 };
 
 window.assetTrackingPermissions = {
   defaults: ROLE_PERMISSIONS_DEFAULT,
-  storageKey: PERMISSIONS_KEY,
+  resolve: getRolePermissions,
 };
 
 const disableControls = (container) => {
@@ -79,19 +82,23 @@ const disableControls = (container) => {
   });
 };
 
-const applyPermissions = () => {
+const applyPermissions = async () => {
   const role = getCurrentRole();
 
   document.querySelectorAll("[data-role-display]").forEach((node) => {
     node.textContent = role;
   });
 
-  document.querySelectorAll("[data-permission]").forEach((node) => {
+  const permissionNodes = Array.from(
+    document.querySelectorAll("[data-permission]")
+  );
+
+  for (const node of permissionNodes) {
     const permission = node.getAttribute("data-permission");
-    const allowed = canAccess(role, permission);
+    const allowed = await canAccess(role, permission);
 
     if (allowed) {
-      return;
+      continue;
     }
 
     node.classList.add("is-disabled");
@@ -103,7 +110,9 @@ const applyPermissions = () => {
     }
 
     disableControls(node);
-  });
+  }
 };
 
-document.addEventListener("DOMContentLoaded", applyPermissions);
+document.addEventListener("DOMContentLoaded", () => {
+  applyPermissions();
+});

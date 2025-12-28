@@ -170,14 +170,12 @@
 
     </main>
 
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
     <script src="audit-log.js"></script>
     <script>
-      const permissionsKey = window.assetTrackingPermissions
-        ? window.assetTrackingPermissions.storageKey
-        : "assetTrackingRolePermissions";
-      const USERS_KEY = "assetTrackingUsers";
       const rolePermissionSelect = document.getElementById(
         "rolePermissionSelect"
       );
@@ -228,32 +226,25 @@
         Viewer: [],
       };
 
-      const getPermissions = () => {
-        const stored = localStorage.getItem(permissionsKey);
-        if (stored) {
-          try {
-            return JSON.parse(stored);
-          } catch (error) {
-            return (
-              window.assetTrackingPermissions?.defaults ||
-              DEFAULT_ROLE_PERMISSIONS
-            );
-          }
-        }
+      let rolePermissions = null;
 
-        return (
-          window.assetTrackingPermissions?.defaults || DEFAULT_ROLE_PERMISSIONS
-        );
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
       };
 
-      const savePermissions = (permissions) => {
-        localStorage.setItem(permissionsKey, JSON.stringify(permissions));
+      const loadRolePermissions = async () => {
+        rolePermissions =
+          (await window.assetTrackingPermissions?.resolve?.()) ||
+          DEFAULT_ROLE_PERMISSIONS;
       };
 
       const renderPermissionChecklist = (role) => {
         permissionChecklist.innerHTML = "";
-        const permissions = getPermissions();
-        const allowed = new Set(permissions[role] || []);
+        const allowed = new Set((rolePermissions || {})[role] || []);
 
         PERMISSIONS.forEach((permission) => {
           const wrapper = document.createElement("label");
@@ -301,21 +292,27 @@
       permissionChecklist.addEventListener("input", updateSaveState);
       permissionChecklist.addEventListener("click", updateSaveState);
 
-      rolePermissionsForm.addEventListener("submit", (event) => {
+      rolePermissionsForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const selectedRole = rolePermissionSelect.value;
         const checked = Array.from(
           permissionChecklist.querySelectorAll("input:checked")
         ).map((input) => input.value);
-        const permissions = getPermissions();
-        permissions[selectedRole] = checked;
-        savePermissions(permissions);
-        window.auditLog.logAudit(
-          "update_role_permissions",
-          `${selectedRole}: ${checked.join(", ") || "none"}`
-        );
+        try {
+          await window.assetTrackingApi.apiFetch(
+            `/api/role-permissions/${encodeURIComponent(selectedRole)}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({ permissions: checked }),
+            }
+          );
+          rolePermissions = rolePermissions || {};
+          rolePermissions[selectedRole] = checked;
+        } catch (error) {
+          return;
+        }
         savePermissionsBtn.disabled = true;
-        window.location.reload();
       });
 
       const renderUsers = (users) => {
@@ -329,7 +326,7 @@
           return;
         }
 
-        users.forEach((user, index) => {
+        users.forEach((user) => {
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${user.name}</td>
@@ -337,7 +334,7 @@
             <td>${user.role}</td>
             <td>${user.location || "—"}</td>
             <td>
-              <button class="secondary-button" data-remove="${index}">
+              <button class="secondary-button" data-remove="${user.id}">
                 Remove
               </button>
             </td>
@@ -346,25 +343,14 @@
         });
       };
 
-      const getUsers = () => {
-        const stored = localStorage.getItem(USERS_KEY);
-        if (!stored) {
-          return [];
-        }
-
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          return [];
-        }
+      const loadUsers = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/users");
+        return data.users || [];
       };
 
-      const saveUsers = (users) => {
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      };
-
-      userForm.addEventListener("submit", (event) => {
+      userForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!ensureAuth()) return;
         const formData = new FormData(userForm);
         const name = String(formData.get("name") || "").trim();
         const username = String(formData.get("username") || "").trim();
@@ -376,46 +362,52 @@
           return;
         }
 
-        const users = getUsers();
-        users.push({ name, username, role, location, password });
-        saveUsers(users);
-        renderUsers(users);
-        userForm.reset();
-        window.auditLog.logAudit(
-          "create_user",
-          `${name} (${username}) ${location ? `@ ${location}` : ""}`
-        );
-
-        if (!localStorage.getItem("assetTrackingCurrentUser")) {
-          localStorage.setItem("assetTrackingCurrentUser", username);
+        try {
+          await window.assetTrackingApi.apiFetch("/api/users", {
+            method: "POST",
+            body: JSON.stringify({ name, username, role, location, password }),
+          });
+          const users = await loadUsers();
+          renderUsers(users);
+          userForm.reset();
+        } catch (error) {
+          return;
         }
       });
 
-      userTableBody.addEventListener("click", (event) => {
+      userTableBody.addEventListener("click", async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLButtonElement)) {
           return;
         }
 
-        const index = target.getAttribute("data-remove");
-        if (index === null) {
+        const userId = target.getAttribute("data-remove");
+        if (!userId) {
           return;
         }
 
-        const users = getUsers();
-        const removed = users.splice(Number(index), 1);
-        saveUsers(users);
-        renderUsers(users);
-        if (removed.length) {
-          window.auditLog.logAudit(
-            "remove_user",
-            `${removed[0].name} (${removed[0].username})`
+        if (!ensureAuth()) return;
+        try {
+          await window.assetTrackingApi.apiFetch(
+            `/api/users/${encodeURIComponent(userId)}`,
+            { method: "DELETE" }
           );
+          const users = await loadUsers();
+          renderUsers(users);
+        } catch (error) {
+          return;
         }
       });
 
-      renderPermissionChecklist(rolePermissionSelect.value);
-      renderUsers(getUsers());
+      const initPage = async () => {
+        if (!ensureAuth()) return;
+        await loadRolePermissions();
+        renderPermissionChecklist(rolePermissionSelect.value);
+        const users = await loadUsers();
+        renderUsers(users);
+      };
+
+      initPage();
     </script>
   </body>
 </html>

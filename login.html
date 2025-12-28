@@ -40,7 +40,7 @@
         <form class="asset-form" id="loginForm">
           <label>
             <span>Username</span>
-            <select id="loginUsername"></select>
+            <input type="text" id="loginUsername" autocomplete="username" />
           </label>
           <label>
             <span>Password</span>
@@ -54,74 +54,41 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <script src="app-session.js"></script>
     <script>
-      const USERS_KEY = "assetTrackingUsers";
-      const CURRENT_USER_KEY = "assetTrackingCurrentUser";
-      const ROLE_KEY = "assetTrackingRole";
-
       const loginForm = document.getElementById("loginForm");
       const loginUsername = document.getElementById("loginUsername");
       const loginPassword = document.getElementById("loginPassword");
       const loginMessage = document.getElementById("loginMessage");
 
-      const loadUsers = () => {
-        const stored = localStorage.getItem(USERS_KEY);
-        if (!stored) return [];
-        try {
-          return JSON.parse(stored);
-        } catch (error) {
-          return [];
-        }
-      };
-
-      const renderUsers = () => {
-        const users = loadUsers();
-        loginUsername.innerHTML = "";
-        if (!users.length) {
-          const option = document.createElement("option");
-          option.value = "";
-          option.textContent = "No users available";
-          loginUsername.appendChild(option);
-          loginUsername.disabled = true;
-          return;
-        }
-
-        users.forEach((user) => {
-          const option = document.createElement("option");
-          option.value = user.username;
-          option.textContent = `${user.name} (${user.username})`;
-          loginUsername.appendChild(option);
-        });
-      };
-
-      loginForm.addEventListener("submit", (event) => {
+      loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const users = loadUsers();
-        const username = loginUsername.value;
+        const username = loginUsername.value.trim();
         const password = loginPassword.value.trim();
 
-        const match = users.find((user) => user.username === username);
-        if (!match) {
-          loginMessage.textContent = "User not found.";
+        if (!username || !password) {
+          loginMessage.textContent = "Enter username and password.";
           loginMessage.className = "form-message error";
           return;
         }
 
-        if (!password || password !== match.password) {
-          loginMessage.textContent = "Incorrect password.";
+        try {
+          const data = await window.assetTrackingApi.apiFetch("/api/login", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+          });
+          window.assetTrackingApi.setToken(data.token);
+          window.assetTrackingApi.setStoredUser(data.user);
+          loginMessage.textContent = "Login successful.";
+          loginMessage.className = "form-message success";
+          window.location.href = "index.html";
+        } catch (error) {
+          loginMessage.textContent = "Login failed. Check your credentials.";
           loginMessage.className = "form-message error";
-          return;
         }
-
-        localStorage.setItem(CURRENT_USER_KEY, match.username);
-        localStorage.setItem(ROLE_KEY, match.role);
-        loginMessage.textContent = "Login successful.";
-        loginMessage.className = "form-message success";
-        window.location.href = "index.html";
       });
-
-      renderUsers();
     </script>
   </body>
 </html>
