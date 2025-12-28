@@ -55,6 +55,19 @@ const loadSession = async () => {
 
 loadSession();
 
+const highlightNav = () => {
+  const current =
+    window.location.pathname.split("/").pop() || "index.html";
+  document.querySelectorAll(".topbar-nav a[href]").forEach((link) => {
+    const href = link.getAttribute("href");
+    if (href === current) {
+      link.classList.add("is-hidden");
+    } else {
+      link.classList.remove("is-hidden");
+    }
+  });
+};
+
 const closeAllMenus = () => {
   document.querySelectorAll(".user-menu").forEach((menu) => {
     menu.classList.remove("open");
@@ -90,4 +103,8 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeAllMenus();
   }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  highlightNav();
 });
