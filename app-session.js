@@ -55,16 +55,43 @@ const loadSession = async () => {
 
 loadSession();
 
+const getSectionFromPath = (path) => {
+  if (!path || path === "index.html") {
+    return "store";
+  }
+  if (path.startsWith("phone")) {
+    return "phones";
+  }
+  if (path === "location-list.html") {
+    return "location-list";
+  }
+  if (path === "user-management.html") {
+    return "user-management";
+  }
+  if (path === "audit-log.html") {
+    return "audit-log";
+  }
+  if (path === "login.html") {
+    return "login";
+  }
+  return "";
+};
+
 const highlightNav = () => {
-  const current =
-    window.location.pathname.split("/").pop() || "index.html";
+  const current = window.location.pathname.split("/").pop() || "index.html";
+  const section = getSectionFromPath(current);
   document.querySelectorAll(".topbar-nav a[href]").forEach((link) => {
     const href = link.getAttribute("href");
-    if (href === current) {
-      link.classList.add("is-hidden");
-    } else {
-      link.classList.remove("is-hidden");
-    }
+    const navKey = link.getAttribute("data-nav") || "";
+    const hide =
+      href === current ||
+      (section === "phones" && navKey === "phones") ||
+      (section === "store" && navKey === "phones") ||
+      (section === "store" && navKey === "store") ||
+      (section === "location-list" && navKey === "location-list") ||
+      (section === "user-management" && navKey === "user-management") ||
+      (section === "audit-log" && navKey === "audit-log");
+    link.classList.toggle("is-hidden", hide);
   });
 };
 
