@@ -117,12 +117,12 @@
         </div>
         <form class="asset-form" id="userForm">
           <label>
-            <span>Name</span>
-            <input type="text" name="name" placeholder="e.g. Alex Tan" />
-          </label>
-          <label>
-            <span>Username</span>
-            <input type="text" name="username" placeholder="e.g. alex.tan" />
+            <span>Email</span>
+            <input
+              type="email"
+              name="username"
+              placeholder="e.g. alex.tan@company.com"
+            />
           </label>
           <label>
             <span>Role</span>
@@ -157,8 +157,7 @@
           <table class="device-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Username</th>
+                <th>Email</th>
                 <th>Role</th>
                 <th>Location</th>
                 <th>Actions</th>
@@ -166,7 +165,7 @@
             </thead>
             <tbody id="userTableBody">
               <tr class="empty-row">
-                <td colspan="5">No users created yet.</td>
+                <td colspan="4">No users created yet.</td>
               </tr>
             </tbody>
           </table>
@@ -334,7 +333,6 @@
         users.forEach((user) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${user.name}</td>
             <td>${user.username}</td>
             <td>${user.role}</td>
             <td>${user.location || "—"}</td>
@@ -357,20 +355,26 @@
         event.preventDefault();
         if (!ensureAuth()) return;
         const formData = new FormData(userForm);
-        const name = String(formData.get("name") || "").trim();
         const username = String(formData.get("username") || "").trim();
         const role = String(formData.get("role") || "").trim();
         const location = String(formData.get("location") || "").trim();
         const password = String(formData.get("password") || "").trim();
 
-        if (!name || !username || !role || !password) {
+        if (!username || !role || !password) {
           return;
         }
 
         try {
+          const displayName = username.split("@")[0] || username;
           await window.assetTrackingApi.apiFetch("/api/users", {
             method: "POST",
-            body: JSON.stringify({ name, username, role, location, password }),
+            body: JSON.stringify({
+              name: displayName,
+              username,
+              role,
+              location,
+              password,
+            }),
           });
           const users = await loadUsers();
           renderUsers(users);
