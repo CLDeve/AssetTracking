@@ -115,7 +115,7 @@
             <p class="subtitle">Add users and assign roles.</p>
           </div>
         </div>
-        <form class="asset-form" id="userForm">
+        <form class="asset-form user-form" id="userForm">
           <label>
             <span>Email</span>
             <input
@@ -134,8 +134,12 @@
             </select>
           </label>
           <label>
-            <span>Locations</span>
-            <div class="permission-checklist" id="locationChecklist">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Set password" />
+          </label>
+          <fieldset class="location-group">
+            <legend>Locations</legend>
+            <div class="permission-checklist location-grid" id="locationChecklist">
               <label class="check-item">
                 <input type="checkbox" value="Terminal 1" />
                 <span>Terminal 1</span>
@@ -161,11 +165,7 @@
                 <span>HR and Admin</span>
               </label>
             </div>
-          </label>
-          <label>
-            <span>Password</span>
-            <input type="password" name="password" placeholder="Set password" />
-          </label>
+          </fieldset>
           <div class="form-actions">
             <button class="primary-button" type="submit">Add user</button>
           </div>
