@@ -719,36 +719,36 @@ h1 {
 .location-group {
   grid-column: 1 / -1;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow-soft);
+  border-radius: 16px;
+  padding: 12px 14px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
 }
 
 .location-group legend {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   color: var(--muted);
   padding: 0 6px;
 }
 
 .location-grid {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
 }
 
 .location-grid .check-item {
-  background: rgba(15, 23, 42, 0.04);
+  background: rgba(15, 23, 42, 0.03);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
 }
 
 .location-grid .check-item input {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .asset-form label {
