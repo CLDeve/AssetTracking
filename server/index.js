@@ -57,6 +57,10 @@ app.get("/api/health", async (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/", (_req, res) => {
+  res.json({ ok: true, message: "AssetTracking API", health: "/api/health" });
+});
+
 app.post("/api/bootstrap", async (req, res) => {
   const { name, username, password } = req.body;
   if (!name || !username || !password) {
