@@ -11,6 +11,16 @@ const updateSessionUI = (user) => {
       node.classList.remove("is-hidden");
     }
   });
+
+  document.querySelectorAll("[data-user-menu-toggle]").forEach((button) => {
+    if (!user) {
+      button.setAttribute("aria-disabled", "true");
+      button.classList.add("is-disabled");
+    } else {
+      button.removeAttribute("aria-disabled");
+      button.classList.remove("is-disabled");
+    }
+  });
 };
 
 const loadSession = async () => {
@@ -44,3 +54,40 @@ const loadSession = async () => {
 };
 
 loadSession();
+
+const closeAllMenus = () => {
+  document.querySelectorAll(".user-menu").forEach((menu) => {
+    menu.classList.remove("open");
+  });
+};
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+
+  const toggle = target.closest("[data-user-menu-toggle]");
+  if (toggle) {
+    const menu = toggle.closest(".user-menu");
+    if (!menu || toggle.getAttribute("aria-disabled") === "true") {
+      return;
+    }
+    const isOpen = menu.classList.contains("open");
+    closeAllMenus();
+    if (!isOpen) {
+      menu.classList.add("open");
+    }
+    return;
+  }
+
+  if (!target.closest(".user-menu")) {
+    closeAllMenus();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeAllMenus();
+  }
+});

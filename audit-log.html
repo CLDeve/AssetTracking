@@ -24,11 +24,16 @@
         <button class="icon-button" type="button" aria-label="Search">
           ⌕
         </button>
-        <div class="user-chip">
-          <span class="user-label">User</span>
-          <span class="user-name" data-current-user>Guest</span>
+        <div class="user-menu">
+          <button class="user-chip user-chip-button" type="button" data-user-menu-toggle>
+            <span class="user-label">User</span>
+            <span class="user-name" data-current-user>Guest</span>
+            <span class="user-caret">▾</span>
+          </button>
+          <div class="user-dropdown" data-user-menu>
+            <a class="dropdown-link" href="logout.html" data-logout-link>Logout</a>
+          </div>
         </div>
-        <a class="text-link" href="logout.html" data-logout-link>Logout</a>
       </div>
     </header>
 

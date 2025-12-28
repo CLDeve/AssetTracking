@@ -89,6 +89,62 @@ body {
   font-size: 0.85rem;
 }
 
+.user-menu {
+  position: relative;
+}
+
+.user-chip-button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.user-chip-button.is-disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.user-caret {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.user-menu.open .user-dropdown {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.dropdown-link:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
 .user-label {
   color: var(--muted);
   font-weight: 600;
