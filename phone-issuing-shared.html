@@ -352,6 +352,7 @@
           sharedBarcodeInput.value = "";
           sharedBarcodeInput.focus();
           await loadIssues();
+          renderReceivedDevices();
         } catch (error) {
           sharedIssueMessage.textContent = "Unable to issue device.";
           sharedIssueMessage.className = "form-message error";
