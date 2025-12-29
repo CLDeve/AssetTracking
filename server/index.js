@@ -158,6 +158,34 @@ app.post("/api/users", auth, async (req, res) => {
   res.json({ user: result.rows[0] });
 });
 
+app.put("/api/users/:id", auth, async (req, res) => {
+  const { id } = req.params;
+  const { name, username, role, location, password } = req.body;
+  if (!name || !username || !role || !isValidEmail(username)) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  let passwordHash = null;
+  if (password) {
+    passwordHash = await bcrypt.hash(password, 10);
+  }
+
+  const result = await pool.query(
+    `UPDATE users
+     SET name = $1,
+         username = $2,
+         role = $3,
+         location = $4,
+         password_hash = COALESCE($5, password_hash)
+     WHERE id = $6
+     RETURNING id, name, username, role, location, is_active`,
+    [name, username, role, location || null, passwordHash, id]
+  );
+
+  await logAudit(req.user, "update_user", `Updated user ${id}`);
+  res.json({ user: result.rows[0] });
+});
+
 app.delete("/api/users/:id", auth, async (req, res) => {
   const { id } = req.params;
   await pool.query("DELETE FROM users WHERE id = $1", [id]);

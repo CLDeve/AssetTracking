@@ -186,16 +186,89 @@
                 <th>Role</th>
                 <th>Locations</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
               <tr class="empty-row">
-                <td colspan="4">No users created yet.</td>
+                <td colspan="5">No users created yet.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
+
+      <div class="modal is-hidden" id="editUserModal" aria-hidden="true">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Edit user</h2>
+            <button class="icon-button" type="button" id="closeEditUserModal" aria-label="Close">
+              ✕
+            </button>
+          </div>
+          <form class="asset-form user-form" id="editUserForm">
+            <label>
+              <span>Email</span>
+              <input
+                type="email"
+                name="username"
+                required
+                placeholder="e.g. alex.tan@company.com"
+              />
+            </label>
+            <label>
+              <span>Role</span>
+              <select name="role" required>
+                <option value="Admin">Admin</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Operator">Operator</option>
+                <option value="Viewer">Viewer</option>
+              </select>
+            </label>
+            <label>
+              <span>Password (optional)</span>
+              <input type="password" name="password" placeholder="Leave blank to keep" />
+            </label>
+            <fieldset class="location-group">
+              <legend>Locations</legend>
+              <div class="permission-checklist location-grid" id="editLocationChecklist">
+                <label class="check-item">
+                  <input type="checkbox" value="Terminal 1" />
+                  <span>Terminal 1</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" value="Terminal 2" />
+                  <span>Terminal 2</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" value="Terminal 3" />
+                  <span>Terminal 3</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" value="Terminal 4" />
+                  <span>Terminal 4</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" value="Selatar" />
+                  <span>Selatar</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" value="HR and Admin" />
+                  <span>HR and Admin</span>
+                </label>
+              </div>
+            </fieldset>
+            <div class="form-actions">
+              <button class="secondary-button" type="button" id="cancelEditUser">
+                Cancel
+              </button>
+              <button class="primary-button" type="submit" id="saveEditUser">
+                Save changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
 
     </main>
 
@@ -212,6 +285,13 @@
         "permissionChecklist"
       );
       const locationChecklist = document.getElementById("locationChecklist");
+      const editUserModal = document.getElementById("editUserModal");
+      const editUserForm = document.getElementById("editUserForm");
+      const editLocationChecklist = document.getElementById(
+        "editLocationChecklist"
+      );
+      const closeEditUserModal = document.getElementById("closeEditUserModal");
+      const cancelEditUser = document.getElementById("cancelEditUser");
       const rolePermissionsForm = document.getElementById(
         "rolePermissionsForm"
       );
@@ -500,8 +580,19 @@
                 class="status-toggle ${isActive ? "" : "is-inactive"}"
                 type="button"
                 data-user-id="${user.id}"
+                data-action="toggle"
               >
                 ${isActive ? "Active" : "Inactive"}
+              </button>
+            </td>
+            <td>
+              <button
+                class="edit-button"
+                type="button"
+                data-user-id="${user.id}"
+                data-action="edit"
+              >
+                Edit
               </button>
             </td>
           `;
@@ -579,6 +670,82 @@
       userForm.addEventListener("change", updateUserSubmitState);
       updateUserSubmitState();
 
+      const parseLocations = (value) =>
+        String(value || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      let editingUserId = null;
+
+      const openEditModal = (user) => {
+        editingUserId = user.id;
+        editUserForm.username.value = user.username || "";
+        editUserForm.role.value = user.role || "";
+        editUserForm.password.value = "";
+        const locations = new Set(parseLocations(user.location));
+        editLocationChecklist
+          .querySelectorAll("input")
+          .forEach((input) => {
+            input.checked = locations.has(input.value);
+          });
+        editUserModal.classList.remove("is-hidden");
+        editUserModal.setAttribute("aria-hidden", "false");
+      };
+
+      const closeEditModal = () => {
+        editUserModal.classList.add("is-hidden");
+        editUserModal.setAttribute("aria-hidden", "true");
+        editUserForm.reset();
+        editingUserId = null;
+      };
+
+      closeEditUserModal.addEventListener("click", closeEditModal);
+      cancelEditUser.addEventListener("click", closeEditModal);
+
+      editUserForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!ensureAuth()) return;
+        if (!editingUserId) return;
+
+        const formData = new FormData(editUserForm);
+        const username = String(formData.get("username") || "").trim();
+        const role = String(formData.get("role") || "").trim();
+        const password = String(formData.get("password") || "").trim();
+        const locations = Array.from(
+          editLocationChecklist.querySelectorAll("input:checked")
+        ).map((input) => input.value);
+        const location = locations.join(", ");
+        if (!username || !role) {
+          return;
+        }
+        if (!username.includes("@")) {
+          return;
+        }
+
+        try {
+          const displayName = username.split("@")[0] || username;
+          await window.assetTrackingApi.apiFetch(
+            `/api/users/${encodeURIComponent(editingUserId)}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                name: displayName,
+                username,
+                role,
+                location,
+                password: password || undefined,
+              }),
+            }
+          );
+          const users = await loadUsers();
+          renderUsers(users);
+          closeEditModal();
+        } catch (error) {
+          return;
+        }
+      });
+
       userTableBody.addEventListener("click", async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLButtonElement)) {
@@ -586,24 +753,37 @@
         }
 
         const userId = target.getAttribute("data-user-id");
+        const action = target.getAttribute("data-action");
         if (!userId) {
           return;
         }
 
-        if (!ensureAuth()) return;
-        try {
-          const nextState = target.textContent.trim() !== "Active";
-          await window.assetTrackingApi.apiFetch(
-            `/api/users/${encodeURIComponent(userId)}/status`,
-            {
-              method: "PATCH",
-              body: JSON.stringify({ isActive: nextState }),
-            }
+        if (action === "edit") {
+          const user = (await loadUsers()).find(
+            (entry) => String(entry.id) === String(userId)
           );
-          const users = await loadUsers();
-          renderUsers(users);
-        } catch (error) {
+          if (user) {
+            openEditModal(user);
+          }
           return;
+        }
+
+        if (action === "toggle") {
+          if (!ensureAuth()) return;
+          try {
+            const nextState = target.textContent.trim() !== "Active";
+            await window.assetTrackingApi.apiFetch(
+              `/api/users/${encodeURIComponent(userId)}/status`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({ isActive: nextState }),
+              }
+            );
+            const users = await loadUsers();
+            renderUsers(users);
+          } catch (error) {
+            return;
+          }
         }
       });
 
