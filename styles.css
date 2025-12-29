@@ -913,35 +913,47 @@ button:disabled {
 
 .permission-row {
   display: grid;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.9);
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
 }
 
 .permission-row.is-nested {
-  border-color: rgba(15, 23, 42, 0.06);
-  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(15, 23, 42, 0.05);
+  background: rgba(247, 249, 252, 0.9);
+  box-shadow: none;
 }
 
 .permission-children {
   display: grid;
-  gap: 8px;
-  padding-left: 18px;
+  gap: 10px;
+  padding-left: 16px;
+}
+
+.permission-row > .check-item span {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.permission-children .check-item span {
+  font-weight: 500;
 }
 
 .check-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   color: var(--ink);
 }
 
 .check-item input {
   width: 16px;
   height: 16px;
+  accent-color: var(--accent);
 }
 
 .permission-item {
