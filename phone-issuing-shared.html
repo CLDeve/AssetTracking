@@ -153,6 +153,35 @@
         window.assetTrackingApi.setStoredUser(currentUser);
       };
 
+      const parseLocations = (value) =>
+        String(value || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      const updateLocationOptions = () => {
+        const locations = parseLocations(currentUser?.location || "");
+        if (!locations.length) {
+          return;
+        }
+        sharedLocationSelect.innerHTML = "";
+        if (locations.length > 1) {
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Select location";
+          sharedLocationSelect.appendChild(placeholder);
+        }
+        locations.forEach((location) => {
+          const option = document.createElement("option");
+          option.value = location;
+          option.textContent = location;
+          sharedLocationSelect.appendChild(option);
+        });
+        if (locations.length === 1) {
+          sharedLocationSelect.value = locations[0];
+        }
+      };
+
       const loadDevices = async () => {
         const data = await window.assetTrackingApi.apiFetch("/api/devices");
         devices = data.devices || [];
@@ -296,6 +325,7 @@
           loadIssues(),
           loadHoldings(),
         ]);
+        updateLocationOptions();
         toggleSharedInputs();
         renderReceivedDevices();
       };
