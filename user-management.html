@@ -14,10 +14,10 @@
       <nav class="topbar-nav">
         <a href="index.html" data-nav="store">Store</a>
         <a href="phone.html" data-nav="phones">Phones</a>
-        <a href="user-management.html" data-permission="user_management" data-nav="user-management">
+        <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
           User management
         </a>
-        <a href="audit-log.html" data-permission="user_management" data-nav="audit-log">Audit log</a>
+        <a href="audit-log.html" data-permission="admin_audit_log" data-nav="audit-log">Audit log</a>
       </nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
@@ -217,41 +217,67 @@
       const addUserButton = document.getElementById("addUserButton");
       const userTableBody = document.getElementById("userTableBody");
 
-      const PERMISSIONS = [
-        { key: "register_device", label: "Register device" },
-        { key: "issuing_personal", label: "Assign phones (Personal)" },
-        { key: "issuing_shared", label: "Assign phones (Shared)" },
-        { key: "bulk_issuing", label: "Bulk issuing" },
-        { key: "returning", label: "Returning" },
-        { key: "location_list", label: "Location list" },
-        { key: "user_management", label: "User management" },
+      const PERMISSION_GROUPS = [
+        {
+          key: "store",
+          label: "Store",
+          children: [
+            {
+              key: "store_phone",
+              label: "Phone",
+              children: [
+                { key: "phone_register_device", label: "Register a device" },
+                { key: "phone_location_list", label: "Location list" },
+                { key: "phone_returning", label: "Returning" },
+                { key: "phone_issuing", label: "Issuing" },
+              ],
+            },
+            { key: "store_tablet", label: "Tablet" },
+            { key: "store_camera", label: "Body Worn Camera" },
+          ],
+        },
+        {
+          key: "admin",
+          label: "Administration",
+          children: [
+            { key: "admin_user_management", label: "User management" },
+            { key: "admin_audit_log", label: "Audit log" },
+          ],
+        },
       ];
 
       const DEFAULT_ROLE_PERMISSIONS = {
         Admin: [
-          "register_device",
-          "issuing_personal",
-          "issuing_shared",
-          "bulk_issuing",
-          "returning",
-          "location_list",
-          "user_management",
+          "store",
+          "store_phone",
+          "phone_register_device",
+          "phone_location_list",
+          "phone_returning",
+          "phone_issuing",
+          "store_tablet",
+          "store_camera",
+          "admin",
+          "admin_user_management",
+          "admin_audit_log",
         ],
         Supervisor: [
-          "register_device",
-          "issuing_personal",
-          "issuing_shared",
-          "bulk_issuing",
-          "returning",
-          "location_list",
+          "store",
+          "store_phone",
+          "phone_register_device",
+          "phone_location_list",
+          "phone_returning",
+          "phone_issuing",
+          "store_tablet",
+          "store_camera",
         ],
         Operator: [
-          "issuing_personal",
-          "issuing_shared",
-          "returning",
-          "location_list",
+          "store",
+          "store_phone",
+          "phone_location_list",
+          "phone_returning",
+          "phone_issuing",
         ],
-        Viewer: [],
+        Viewer: ["store"],
       };
 
       let rolePermissions = null;
@@ -270,21 +296,43 @@
           DEFAULT_ROLE_PERMISSIONS;
       };
 
-      const renderPermissionChecklist = (role) => {
-        permissionChecklist.innerHTML = "";
-        const allowed = new Set((rolePermissions || {})[role] || []);
+      const renderPermissionItem = (permission, allowed, depth = 0) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "permission-row";
+        if (depth > 0) {
+          wrapper.classList.add("is-nested");
+        }
 
-        PERMISSIONS.forEach((permission) => {
-          const wrapper = document.createElement("label");
-          wrapper.className = "check-item";
-          wrapper.innerHTML = `
-            <input type="checkbox" value="${permission.key}" ${
+        wrapper.innerHTML = `
+          <label class="check-item">
+            <input type="checkbox" value="${permission.key}" data-permission-key="${permission.key}" ${
               allowed.has(permission.key) ? "checked" : ""
             } />
             <span>${permission.label}</span>
-          `;
-          permissionChecklist.appendChild(wrapper);
+          </label>
+        `;
+
+        if (permission.children && permission.children.length) {
+          const childContainer = document.createElement("div");
+          childContainer.className = "permission-children";
+          permission.children.forEach((child) => {
+            childContainer.appendChild(
+              renderPermissionItem(child, allowed, depth + 1)
+            );
+          });
+          wrapper.appendChild(childContainer);
+        }
+
+        return wrapper;
+      };
+
+      const renderPermissionChecklist = (role) => {
+        permissionChecklist.innerHTML = "";
+        const allowed = new Set((rolePermissions || {})[role] || []);
+        PERMISSION_GROUPS.forEach((group) => {
+          permissionChecklist.appendChild(renderPermissionItem(group, allowed));
         });
+        updateParentStates();
         permissionChecklist.dataset.initialSignature = getChecklistSignature();
         updateSaveState();
       };
@@ -320,6 +368,73 @@
       permissionChecklist.addEventListener("input", updateSaveState);
       permissionChecklist.addEventListener("click", updateSaveState);
 
+      const getCheckbox = (key) =>
+        permissionChecklist.querySelector(
+          `input[data-permission-key="${key}"]`
+        );
+
+      const updateParentStates = () => {
+        const walk = (node) => {
+          if (!node.children || !node.children.length) {
+            return;
+          }
+          node.children.forEach(walk);
+          const parentInput = getCheckbox(node.key);
+          if (!parentInput) return;
+          const childInputs = node.children
+            .map((child) => getCheckbox(child.key))
+            .filter(Boolean);
+          const checkedCount = childInputs.filter((input) => input.checked)
+            .length;
+          parentInput.checked = checkedCount === childInputs.length;
+          parentInput.indeterminate =
+            checkedCount > 0 && checkedCount < childInputs.length;
+        };
+
+        PERMISSION_GROUPS.forEach(walk);
+      };
+
+      const setChildrenChecked = (node, checked) => {
+        if (!node.children || !node.children.length) {
+          return;
+        }
+        node.children.forEach((child) => {
+          const input = getCheckbox(child.key);
+          if (input) {
+            input.checked = checked;
+          }
+          setChildrenChecked(child, checked);
+        });
+      };
+
+      permissionChecklist.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) {
+          return;
+        }
+        const key = target.getAttribute("data-permission-key");
+        if (!key) return;
+
+        const findNode = (nodes, match) => {
+          for (const node of nodes) {
+            if (node.key === match) return node;
+            if (node.children) {
+              const found = findNode(node.children, match);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        const node = findNode(PERMISSION_GROUPS, key);
+        if (!node) return;
+        if (node.children && node.children.length) {
+          setChildrenChecked(node, target.checked);
+        }
+        updateParentStates();
+        updateSaveState();
+      });
+
       rolePermissionsForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!ensureAuth()) return;
@@ -327,16 +442,32 @@
         const checked = Array.from(
           permissionChecklist.querySelectorAll("input:checked")
         ).map((input) => input.value);
+        const withParents = new Set(checked);
+
+        const addParentsForChecked = (node) => {
+          if (!node.children || !node.children.length) {
+            return withParents.has(node.key);
+          }
+          const childChecked = node.children.some((child) =>
+            addParentsForChecked(child)
+          );
+          if (childChecked) {
+            withParents.add(node.key);
+          }
+          return childChecked;
+        };
+
+        PERMISSION_GROUPS.forEach(addParentsForChecked);
         try {
           await window.assetTrackingApi.apiFetch(
             `/api/role-permissions/${encodeURIComponent(selectedRole)}`,
             {
               method: "PUT",
-              body: JSON.stringify({ permissions: checked }),
+              body: JSON.stringify({ permissions: Array.from(withParents) }),
             }
           );
           rolePermissions = rolePermissions || {};
-          rolePermissions[selectedRole] = checked;
+          rolePermissions[selectedRole] = Array.from(withParents);
         } catch (error) {
           return;
         }

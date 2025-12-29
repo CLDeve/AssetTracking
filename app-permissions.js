@@ -1,28 +1,35 @@
 const ROLE_PERMISSIONS_DEFAULT = {
   Admin: [
-    "register_device",
-    "issuing_personal",
-    "issuing_shared",
-    "bulk_issuing",
-    "returning",
-    "location_list",
-    "user_management",
+    "store",
+    "store_phone",
+    "phone_register_device",
+    "phone_location_list",
+    "phone_returning",
+    "phone_issuing",
+    "store_tablet",
+    "store_camera",
+    "admin",
+    "admin_user_management",
+    "admin_audit_log",
   ],
   Supervisor: [
-    "register_device",
-    "issuing_personal",
-    "issuing_shared",
-    "bulk_issuing",
-    "returning",
-    "location_list",
+    "store",
+    "store_phone",
+    "phone_register_device",
+    "phone_location_list",
+    "phone_returning",
+    "phone_issuing",
+    "store_tablet",
+    "store_camera",
   ],
   Operator: [
-    "issuing_personal",
-    "issuing_shared",
-    "returning",
-    "location_list",
+    "store",
+    "store_phone",
+    "phone_location_list",
+    "phone_returning",
+    "phone_issuing",
   ],
-  Viewer: [],
+  Viewer: ["store"],
 };
 
 const getCurrentRole = () => {
@@ -33,11 +40,47 @@ const getCurrentRole = () => {
   return user?.role || "Viewer";
 };
 
+const LEGACY_PERMISSION_MAP = {
+  register_device: "phone_register_device",
+  returning: "phone_returning",
+  location_list: "phone_location_list",
+  issuing_personal: "phone_issuing",
+  issuing_shared: "phone_issuing",
+  bulk_issuing: "phone_issuing",
+  user_management: "admin_user_management",
+  audit_log: "admin_audit_log",
+};
+
+const PARENT_MAP = {
+  store_phone: ["store"],
+  store_tablet: ["store"],
+  store_camera: ["store"],
+  phone_register_device: ["store", "store_phone"],
+  phone_location_list: ["store", "store_phone"],
+  phone_returning: ["store", "store_phone"],
+  phone_issuing: ["store", "store_phone"],
+  admin_user_management: ["admin"],
+  admin_audit_log: ["admin"],
+};
+
+const migratePermissions = (permissions = []) => {
+  const normalized = new Set();
+  permissions.forEach((permission) => {
+    const mapped = LEGACY_PERMISSION_MAP[permission] || permission;
+    normalized.add(mapped);
+  });
+  Array.from(normalized).forEach((permission) => {
+    const parents = PARENT_MAP[permission] || [];
+    parents.forEach((parent) => normalized.add(parent));
+  });
+  return Array.from(normalized);
+};
+
 const normalizePermissions = (roles) => {
   const map = { ...ROLE_PERMISSIONS_DEFAULT };
   roles.forEach((roleEntry) => {
     if (!roleEntry?.role) return;
-    map[roleEntry.role] = roleEntry.permissions || [];
+    map[roleEntry.role] = migratePermissions(roleEntry.permissions || []);
   });
   return map;
 };
@@ -65,7 +108,12 @@ const getRolePermissions = async () => {
 
 const canAccess = async (role, permission) => {
   const rolePermissions = await getRolePermissions();
-  return (rolePermissions[role] || []).includes(permission);
+  const permissions = rolePermissions[role] || [];
+  if (!permissions.includes(permission)) {
+    return false;
+  }
+  const parents = PARENT_MAP[permission] || [];
+  return parents.every((parent) => permissions.includes(parent));
 };
 
 window.assetTrackingPermissions = {

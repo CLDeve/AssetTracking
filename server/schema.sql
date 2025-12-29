@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 INSERT INTO role_permissions (role, permissions)
 VALUES
-  ('Admin', ARRAY['register_device','issuing_personal','issuing_shared','bulk_issuing','returning','location_list','user_management']),
-  ('Supervisor', ARRAY['register_device','issuing_personal','issuing_shared','bulk_issuing','returning','location_list']),
-  ('Operator', ARRAY['issuing_personal','issuing_shared','returning','location_list']),
-  ('Viewer', ARRAY[]::TEXT[])
+  ('Admin', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','store_tablet','store_camera','admin','admin_user_management','admin_audit_log']),
+  ('Supervisor', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','store_tablet','store_camera']),
+  ('Operator', ARRAY['store','store_phone','phone_location_list','phone_returning','phone_issuing']),
+  ('Viewer', ARRAY['store'])
 ON CONFLICT (role) DO NOTHING;
