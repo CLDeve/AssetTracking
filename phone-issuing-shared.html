@@ -377,11 +377,20 @@
       sharedTeamInput.addEventListener("blur", maybeSubmitSharedIssue);
       sharedBarcodeInput.addEventListener("change", maybeSubmitSharedIssue);
       sharedBarcodeInput.addEventListener("blur", maybeSubmitSharedIssue);
-      sharedBarcodeInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          maybeSubmitSharedIssue();
-        }
+      const handleEnterSubmit = (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        submitSharedIssue();
+      };
+
+      sharedTeamInput.addEventListener("keydown", handleEnterSubmit);
+      sharedBarcodeInput.addEventListener("keydown", handleEnterSubmit);
+      sharedIssueForm.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        const target = event.target;
+        if (target && target.tagName === "TEXTAREA") return;
+        event.preventDefault();
+        submitSharedIssue();
       });
 
       const initPage = async () => {
