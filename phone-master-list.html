@@ -7,7 +7,10 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="topbar">
+  <div class="page-loader" data-page-loader>
+    <div class="spinner" aria-label="Loading" role="status"></div>
+  </div>
+<header class="topbar">
       <div class="brand">
         <span class="brand-name">Asset Tracking</span>
       </div>
@@ -812,5 +815,6 @@
 
       initPage();
     </script>
+      <script src="loader.js"></script>
   </body>
 </html>
