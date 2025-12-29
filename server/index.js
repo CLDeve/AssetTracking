@@ -540,7 +540,7 @@ app.delete("/api/audit", auth, async (_req, res) => {
   res.json({ ok: true });
 });
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`API listening on ${port}`);
 });
