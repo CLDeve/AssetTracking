@@ -346,7 +346,16 @@ app.post("/api/issues", auth, async (req, res) => {
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
     [device.rows[0].id, issuedTo || null, issueType, location || null, req.user.id]
   );
-  await logAudit(req.user, "issue_device", `Device ID ${deviceId}`);
+  const issueDetails = [
+    "OUT",
+    `Device ID ${deviceId}`,
+    issueType ? `(${issueType})` : null,
+    location ? `@ ${location}` : null,
+    issuedTo ? `to ${issuedTo}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  await logAudit(req.user, "issue_device", issueDetails);
   res.json({ issue: result.rows[0] });
 });
 
@@ -368,7 +377,17 @@ app.post("/api/returns", auth, async (req, res) => {
     return res.status(400).json({ error: "Device not issued" });
   }
 
-  await logAudit(req.user, "return_device", `Device ID ${deviceId}`);
+  const returnedIssue = result.rows[0];
+  const returnDetails = [
+    "IN",
+    `Device ID ${deviceId}`,
+    returnedIssue.issue_type ? `(${returnedIssue.issue_type})` : null,
+    returnedIssue.location ? `@ ${returnedIssue.location}` : null,
+    returnedIssue.issued_to ? `from ${returnedIssue.issued_to}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  await logAudit(req.user, "return_device", returnDetails);
   res.json({ ok: true });
 });
 
