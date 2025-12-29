@@ -15,16 +15,6 @@ Apply schema:
 psql "$DATABASE_URL" -f schema.sql
 ```
 
-## Render
-
-Use the `render.yaml` blueprint at the repo root.
-
-After deploy, run the schema once in Render's shell:
-
-```bash
-psql "$DATABASE_URL" -f schema.sql
-```
-
 Bootstrap admin:
 
 ```bash

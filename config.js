@@ -1,1 +1,1 @@
-window.ASSET_TRACKING_API = "https://assettracking-api.onrender.com";
+window.ASSET_TRACKING_API = "http://localhost:10000";
