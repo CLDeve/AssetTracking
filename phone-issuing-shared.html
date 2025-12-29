@@ -78,16 +78,18 @@
           </label>
           <label>
             <span>Device barcode</span>
-            <input
-              type="text"
-              name="deviceBarcode"
-              id="sharedBarcodeInput"
-              placeholder="Scan or enter device barcode"
-            />
+            <div class="input-action-row">
+              <input
+                type="text"
+                name="deviceBarcode"
+                id="sharedBarcodeInput"
+                placeholder="Scan or enter device barcode"
+              />
+              <button class="secondary-button" type="button" id="sharedClearButton">
+                Clear
+              </button>
+            </div>
           </label>
-          <div class="form-actions">
-            <button class="secondary-button" type="reset">Clear</button>
-          </div>
           <p class="form-message" id="sharedIssueMessage" role="status"></p>
         </form>
       </section>
@@ -107,12 +109,13 @@
               <tr>
                 <th>Device ID</th>
                 <th>Location</th>
-                <th>Scanned at</th>
+                <th>Status</th>
+                <th>Issued at</th>
               </tr>
             </thead>
             <tbody id="receivedDevicesBody">
               <tr class="empty-row">
-              <td colspan="3">Select a location to view received devices.</td>
+              <td colspan="4">Select a location to view received devices.</td>
             </tr>
           </tbody>
         </table>
@@ -132,6 +135,7 @@
       const sharedLocationSelect = document.getElementById(
         "sharedLocationSelect"
       );
+      const sharedClearButton = document.getElementById("sharedClearButton");
       const receivedDevicesBody = document.getElementById(
         "receivedDevicesBody"
       );
@@ -170,6 +174,18 @@
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean);
+
+      const formatTimestamp = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = date.toLocaleString("en-US", { month: "short" });
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      };
 
       const updateLocationOptions = () => {
         const locations = parseLocations(currentUser?.location || "");
@@ -225,7 +241,7 @@
         if (!location) {
           receivedDevicesBody.innerHTML = `
             <tr class="empty-row">
-              <td colspan="3">Select a location to view received devices.</td>
+              <td colspan="4">Select a location to view received devices.</td>
             </tr>
           `;
           return;
@@ -236,18 +252,29 @@
         if (!filtered.length) {
           receivedDevicesBody.innerHTML = `
             <tr class="empty-row">
-              <td colspan="3">No devices received at this location.</td>
+              <td colspan="4">No devices received at this location.</td>
             </tr>
           `;
           return;
         }
 
         filtered.forEach((hold) => {
+          const activeIssue = issues.find(
+            (issue) =>
+              String(issue.device_identifier || "").toLowerCase() ===
+                String(hold.device_identifier || "").toLowerCase() &&
+              String(issue.location || "") === String(hold.location || "")
+          );
+          const status = activeIssue ? "OUT" : "IN";
+          const issuedAt = activeIssue
+            ? formatTimestamp(activeIssue.issued_at)
+            : "";
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${hold.device_identifier || "—"}</td>
             <td>${hold.location || "—"}</td>
-            <td></td>
+            <td>${status}</td>
+            <td>${issuedAt}</td>
           `;
           receivedDevicesBody.appendChild(row);
         });
@@ -257,6 +284,7 @@
         const hasLocation = sharedLocationSelect.value.trim().length > 0;
         sharedTeamInput.disabled = !hasLocation;
         sharedBarcodeInput.disabled = !hasLocation;
+        sharedClearButton.disabled = !hasLocation;
         if (!hasLocation) {
           sharedTeamInput.value = "";
           sharedBarcodeInput.value = "";
@@ -265,6 +293,13 @@
 
       sharedLocationSelect.addEventListener("change", toggleSharedInputs);
       sharedLocationSelect.addEventListener("change", renderReceivedDevices);
+      sharedClearButton.addEventListener("click", () => {
+        sharedTeamInput.value = "";
+        sharedBarcodeInput.value = "";
+        sharedIssueMessage.textContent = "";
+        sharedIssueMessage.className = "form-message";
+        sharedBarcodeInput.focus();
+      });
 
       const submitSharedIssue = async () => {
         if (!ensureAuth()) return;
