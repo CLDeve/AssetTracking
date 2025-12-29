@@ -378,6 +378,15 @@ app.post("/api/returns", auth, async (req, res) => {
   }
 
   const returnedIssue = result.rows[0];
+  await pool.query(
+    `INSERT INTO ops_holdings (device_id, location, user_id, scanned_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (device_id)
+     DO UPDATE SET location = EXCLUDED.location,
+                   user_id = EXCLUDED.user_id,
+                   scanned_at = NOW()`,
+    [device.rows[0].id, returnedIssue.location || null, req.user.id]
+  );
   const returnDetails = [
     "IN",
     `Device ID ${deviceId}`,
