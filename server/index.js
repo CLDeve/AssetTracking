@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
@@ -13,12 +15,54 @@ const pool = new Pool({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me";
+if (process.env.NODE_ENV === "production" && JWT_SECRET === "change-me") {
+  throw new Error("JWT_SECRET must be set in production.");
+}
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
-  credentials: true,
-}));
-app.use(express.json());
+app.set("trust proxy", 1);
+
+const originList = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+  : [];
+
+app.use(
+  cors({
+    origin: originList.length
+      ? (origin, callback) => {
+          if (!origin || originList.includes(origin)) {
+            return callback(null, true);
+          }
+          return callback(new Error("Not allowed by CORS"));
+        }
+      : "*",
+    credentials: originList.length > 0,
+  })
+);
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json({ limit: "100kb" }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const bootstrapLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(apiLimiter);
 
 const signToken = (user) =>
   jwt.sign(
@@ -78,9 +122,18 @@ app.get("/", (_req, res) => {
 const isValidEmail = (value) =>
   typeof value === "string" && /\S+@\S+\.\S+/.test(value);
 
-app.post("/api/bootstrap", async (req, res) => {
+const isStrongPassword = (value) =>
+  typeof value === "string" && value.length >= 8;
+
+app.post("/api/bootstrap", bootstrapLimiter, async (req, res) => {
   const { name, username, password } = req.body;
-  if (!name || !username || !password || !isValidEmail(username)) {
+  if (
+    !name ||
+    !username ||
+    !password ||
+    !isValidEmail(username) ||
+    !isStrongPassword(password)
+  ) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
@@ -100,7 +153,7 @@ app.post("/api/bootstrap", async (req, res) => {
   res.json({ token: signToken(user), user });
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", authLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password || !isValidEmail(username)) {
     return res.status(400).json({ error: "Missing credentials" });
@@ -111,15 +164,18 @@ app.post("/api/login", async (req, res) => {
   ]);
   const user = result.rows[0];
   if (!user) {
+    await logAudit(null, "login_failed", `Login failed for ${username}`);
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
   if (!user.is_active) {
+    await logAudit(user, "login_failed", `Login blocked (inactive)`);
     return res.status(403).json({ error: "User inactive" });
   }
 
   const matches = await bcrypt.compare(password, user.password_hash);
   if (!matches) {
+    await logAudit(user, "login_failed", `Login failed (bad password)`);
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
@@ -144,7 +200,14 @@ app.get("/api/users", auth, async (_req, res) => {
 
 app.post("/api/users", auth, async (req, res) => {
   const { name, username, role, location, password } = req.body;
-  if (!name || !username || !role || !password || !isValidEmail(username)) {
+  if (
+    !name ||
+    !username ||
+    !role ||
+    !password ||
+    !isValidEmail(username) ||
+    !isStrongPassword(password)
+  ) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
@@ -167,6 +230,9 @@ app.put("/api/users/:id", auth, async (req, res) => {
 
   let passwordHash = null;
   if (password) {
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: "Password too short" });
+    }
     passwordHash = await bcrypt.hash(password, 10);
   }
 
