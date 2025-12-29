@@ -268,7 +268,7 @@
           const status = activeIssue ? "OUT" : "IN";
           const issuedAt = activeIssue
             ? formatTimestamp(activeIssue.issued_at)
-            : "";
+            : formatTimestamp(hold.scanned_at);
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${hold.device_identifier || "—"}</td>
