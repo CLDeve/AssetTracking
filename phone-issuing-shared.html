@@ -94,26 +94,6 @@
         </form>
       </section>
 
-      <section class="form-card compact" data-permission="phone_issuing">
-        <form class="asset-form inline-actions" id="sharedReturnForm">
-          <label>
-            <span>Return device barcode</span>
-            <div class="input-action-row">
-              <input
-                type="text"
-                name="returnBarcode"
-                id="sharedReturnBarcodeInput"
-                placeholder="Scan or enter device barcode"
-              />
-              <button class="secondary-button" type="button" id="sharedReturnClearButton">
-                Clear
-              </button>
-            </div>
-          </label>
-          <p class="form-message" id="sharedReturnMessage" role="status"></p>
-        </form>
-      </section>
-
       <section class="form-card" data-permission="phone_issuing">
         <div class="list-header">
           <div>
@@ -156,14 +136,6 @@
         "sharedLocationSelect"
       );
       const sharedClearButton = document.getElementById("sharedClearButton");
-      const sharedReturnForm = document.getElementById("sharedReturnForm");
-      const sharedReturnMessage = document.getElementById("sharedReturnMessage");
-      const sharedReturnBarcodeInput = document.getElementById(
-        "sharedReturnBarcodeInput"
-      );
-      const sharedReturnClearButton = document.getElementById(
-        "sharedReturnClearButton"
-      );
       const receivedDevicesBody = document.getElementById(
         "receivedDevicesBody"
       );
@@ -313,12 +285,9 @@
         sharedTeamInput.disabled = !hasLocation;
         sharedBarcodeInput.disabled = !hasLocation;
         sharedClearButton.disabled = !hasLocation;
-        sharedReturnBarcodeInput.disabled = !hasLocation;
-        sharedReturnClearButton.disabled = !hasLocation;
         if (!hasLocation) {
           sharedTeamInput.value = "";
           sharedBarcodeInput.value = "";
-          sharedReturnBarcodeInput.value = "";
         }
       };
 
@@ -330,12 +299,6 @@
         sharedIssueMessage.textContent = "";
         sharedIssueMessage.className = "form-message";
         sharedBarcodeInput.focus();
-      });
-      sharedReturnClearButton.addEventListener("click", () => {
-        sharedReturnBarcodeInput.value = "";
-        sharedReturnMessage.textContent = "";
-        sharedReturnMessage.className = "form-message";
-        sharedReturnBarcodeInput.focus();
       });
 
       const submitSharedIssue = async () => {
@@ -360,38 +323,51 @@
           return;
         }
 
-        const alreadyIssued = issues.some(
+        const activeIssue = issues.find(
           (issue) =>
             String(issue.device_identifier || "").toLowerCase() ===
-            deviceBarcode.toLowerCase()
+              deviceBarcode.toLowerCase() &&
+            String(issue.location || "") === String(location)
         );
-
-        if (alreadyIssued) {
-          sharedIssueMessage.textContent = "Device already issued out.";
-          sharedIssueMessage.className = "form-message error";
-          return;
-        }
 
         try {
           isSubmitting = true;
-          await window.assetTrackingApi.apiFetch("/api/issues", {
-            method: "POST",
-            body: JSON.stringify({
-              deviceId: deviceBarcode,
-              issuedTo: teamName,
-              issueType: "Shared",
-              location,
-            }),
-          });
-          sharedIssueMessage.textContent = "Shared device issued successfully.";
-          sharedIssueMessage.className = "form-message success";
+          if (activeIssue) {
+            const issuedTo = String(activeIssue.issued_to || "").trim();
+            if (issuedTo && issuedTo.toLowerCase() !== teamName.toLowerCase()) {
+              sharedIssueMessage.textContent =
+                "Team name does not match the issued record.";
+              sharedIssueMessage.className = "form-message error";
+              return;
+            }
+            await window.assetTrackingApi.apiFetch("/api/returns", {
+              method: "POST",
+              body: JSON.stringify({ deviceId: deviceBarcode }),
+            });
+            sharedIssueMessage.textContent =
+              "Shared device returned successfully.";
+            sharedIssueMessage.className = "form-message success";
+          } else {
+            await window.assetTrackingApi.apiFetch("/api/issues", {
+              method: "POST",
+              body: JSON.stringify({
+                deviceId: deviceBarcode,
+                issuedTo: teamName,
+                issueType: "Shared",
+                location,
+              }),
+            });
+            sharedIssueMessage.textContent =
+              "Shared device issued successfully.";
+            sharedIssueMessage.className = "form-message success";
+          }
           sharedTeamInput.value = "";
           sharedBarcodeInput.value = "";
           sharedBarcodeInput.focus();
           await loadIssues();
           renderReceivedDevices();
         } catch (error) {
-          sharedIssueMessage.textContent = "Unable to issue device.";
+          sharedIssueMessage.textContent = "Unable to update device.";
           sharedIssueMessage.className = "form-message error";
         } finally {
           isSubmitting = false;
@@ -471,18 +447,6 @@
         }
       };
 
-      const handleReturnEnter = (event) => {
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        submitSharedReturn();
-      };
-
-      sharedReturnBarcodeInput.addEventListener("keydown", handleReturnEnter);
-      sharedReturnForm.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        submitSharedReturn();
-      });
 
       const initPage = async () => {
         if (!ensureAuth()) return;
