@@ -57,6 +57,7 @@
             <input
               type="text"
               name="teamName"
+              id="sharedTeamInput"
               placeholder="e.g. Night Shift A"
             />
           </label>
@@ -71,7 +72,7 @@
           </label>
           <label>
             <span>Location</span>
-            <select name="sharedLocation">
+            <select name="sharedLocation" id="sharedLocationSelect">
               <option value="">Select location</option>
               <option value="Terminal 1">Terminal 1</option>
               <option value="Terminal 2">Terminal 2</option>
@@ -97,6 +98,10 @@
       const sharedIssueForm = document.getElementById("sharedIssueForm");
       const sharedIssueMessage = document.getElementById("sharedIssueMessage");
       const sharedBarcodeInput = document.getElementById("sharedBarcodeInput");
+      const sharedTeamInput = document.getElementById("sharedTeamInput");
+      const sharedLocationSelect = document.getElementById(
+        "sharedLocationSelect"
+      );
       let devices = [];
       let issues = [];
 
@@ -118,6 +123,18 @@
         issues = data.issues || [];
       };
 
+      const toggleSharedInputs = () => {
+        const hasLocation = sharedLocationSelect.value.trim().length > 0;
+        sharedTeamInput.disabled = !hasLocation;
+        sharedBarcodeInput.disabled = !hasLocation;
+        if (!hasLocation) {
+          sharedTeamInput.value = "";
+          sharedBarcodeInput.value = "";
+        }
+      };
+
+      sharedLocationSelect.addEventListener("change", toggleSharedInputs);
+
       sharedIssueForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!ensureAuth()) return;
@@ -125,6 +142,12 @@
         const teamName = String(formData.get("teamName") || "").trim();
         const deviceBarcode = String(formData.get("deviceBarcode") || "").trim();
         const location = String(formData.get("sharedLocation") || "").trim();
+
+        if (!location) {
+          sharedIssueMessage.textContent = "Please select a location.";
+          sharedIssueMessage.className = "form-message error";
+          return;
+        }
 
         if (!teamName) {
           sharedIssueMessage.textContent = "Please enter the team or shift name.";
@@ -134,12 +157,6 @@
 
         if (!deviceBarcode) {
           sharedIssueMessage.textContent = "Please scan the device barcode.";
-          sharedIssueMessage.className = "form-message error";
-          return;
-        }
-
-        if (!location) {
-          sharedIssueMessage.textContent = "Please select a location.";
           sharedIssueMessage.className = "form-message error";
           return;
         }
@@ -192,6 +209,7 @@
       const initPage = async () => {
         if (!ensureAuth()) return;
         await Promise.all([loadDevices(), loadIssues()]);
+        toggleSharedInputs();
       };
 
       initPage();
