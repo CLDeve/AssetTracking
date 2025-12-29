@@ -306,8 +306,14 @@
         }
       };
 
+      const refreshReceivedDevices = async () => {
+        await loadHoldings();
+        await loadIssues();
+        renderReceivedDevices();
+      };
+
       sharedLocationSelect.addEventListener("change", toggleSharedInputs);
-      sharedLocationSelect.addEventListener("change", renderReceivedDevices);
+      sharedLocationSelect.addEventListener("change", refreshReceivedDevices);
       sharedClearButton.addEventListener("click", () => {
         sharedTeamInput.value = "";
         sharedBarcodeInput.value = "";
@@ -379,8 +385,7 @@
           sharedTeamInput.value = "";
           sharedBarcodeInput.value = "";
           sharedBarcodeInput.focus();
-          await loadIssues();
-          renderReceivedDevices();
+          await refreshReceivedDevices();
         } catch (error) {
           sharedIssueMessage.textContent = "Unable to update device.";
           sharedIssueMessage.className = "form-message error";
