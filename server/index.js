@@ -75,9 +75,12 @@ app.get("/", (_req, res) => {
   res.json({ ok: true, message: "AssetTracking API", health: "/api/health" });
 });
 
+const isValidEmail = (value) =>
+  typeof value === "string" && /\S+@\S+\.\S+/.test(value);
+
 app.post("/api/bootstrap", async (req, res) => {
   const { name, username, password } = req.body;
-  if (!name || !username || !password) {
+  if (!name || !username || !password || !isValidEmail(username)) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
@@ -99,7 +102,7 @@ app.post("/api/bootstrap", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) {
+  if (!username || !password || !isValidEmail(username)) {
     return res.status(400).json({ error: "Missing credentials" });
   }
 
@@ -141,7 +144,7 @@ app.get("/api/users", auth, async (_req, res) => {
 
 app.post("/api/users", auth, async (req, res) => {
   const { name, username, role, location, password } = req.body;
-  if (!name || !username || !role || !password) {
+  if (!name || !username || !role || !password || !isValidEmail(username)) {
     return res.status(400).json({ error: "Missing fields" });
   }
 

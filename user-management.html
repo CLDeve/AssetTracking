@@ -527,6 +527,10 @@
           return;
         }
 
+        if (!username.includes("@")) {
+          return;
+        }
+
         try {
           const displayName = username.split("@")[0] || username;
           await window.assetTrackingApi.apiFetch("/api/users", {
@@ -558,8 +562,13 @@
         const password = String(formData.get("password") || "").trim();
         const locationsSelected =
           locationChecklist.querySelectorAll("input:checked").length > 0;
+        const validEmail = username.includes("@");
         const valid =
-          Boolean(username) && Boolean(role) && Boolean(password) && locationsSelected;
+          Boolean(username) &&
+          Boolean(role) &&
+          Boolean(password) &&
+          locationsSelected &&
+          validEmail;
         addUserButton.disabled = !valid;
       };
 
