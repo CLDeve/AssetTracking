@@ -304,10 +304,9 @@
       const submitSharedIssue = async () => {
         if (!ensureAuth()) return;
         if (isSubmitting) return;
-        const formData = new FormData(sharedIssueForm);
-        const teamName = String(formData.get("teamName") || "").trim();
-        const deviceBarcode = String(formData.get("deviceBarcode") || "").trim();
-        const location = String(formData.get("sharedLocation") || "").trim();
+        const teamName = String(sharedTeamInput.value || "").trim();
+        const deviceBarcode = String(sharedBarcodeInput.value || "").trim();
+        const location = String(sharedLocationSelect.value || "").trim();
 
         if (!location || !teamName || !deviceBarcode) return;
 
