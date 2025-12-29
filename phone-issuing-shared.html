@@ -198,7 +198,7 @@
           row.innerHTML = `
             <td>${hold.device_identifier || "—"}</td>
             <td>${hold.location || "—"}</td>
-            <td>${hold.scanned_at ? String(hold.scanned_at).replace("T", " ").slice(0, 16) : "—"}</td>
+            <td></td>
           `;
           receivedDevicesBody.appendChild(row);
         });
