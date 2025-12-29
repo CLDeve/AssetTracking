@@ -195,7 +195,6 @@
       };
 
       const renderTables = (activeUser) => {
-        const locationLabel = activeLocations.join(", ");
         const locationSet = new Set(activeLocations);
         const holdingDeviceIds = new Set(
           holdings.map((hold) => String(hold.device_identifier || ""))
@@ -257,6 +256,7 @@
           return false;
         }
 
+        const locationLabel = activeLocations.join(", ");
         locationTitle.textContent = `${locationLabel} devices`;
         activeUserInfo.textContent = `Active user: ${activeUser.name} (${activeUser.username})`;
         return true;
