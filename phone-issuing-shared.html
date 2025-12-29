@@ -181,11 +181,7 @@
           return;
         }
 
-        const filtered = holdings.filter(
-          (hold) =>
-            hold.location === location &&
-            (!currentUser || hold.user_id === currentUser.id)
-        );
+        const filtered = holdings.filter((hold) => hold.location === location);
 
         if (!filtered.length) {
           receivedDevicesBody.innerHTML = `
