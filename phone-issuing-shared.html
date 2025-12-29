@@ -92,9 +92,9 @@
       <section class="form-card" data-permission="phone_issuing">
         <div class="list-header">
           <div>
-          <h2>Issued at location</h2>
+          <h2>Received at location</h2>
           <p class="subtitle">
-              Devices issued out for the selected location.
+              Devices from “With me now” for the selected location.
           </p>
           </div>
         </div>
@@ -104,12 +104,12 @@
               <tr>
                 <th>Device ID</th>
                 <th>Location</th>
-                <th>Issued at</th>
+                <th>Scanned at</th>
               </tr>
             </thead>
             <tbody id="receivedDevicesBody">
               <tr class="empty-row">
-              <td colspan="3">Select a location to view issued devices.</td>
+              <td colspan="3">Select a location to view received devices.</td>
             </tr>
           </tbody>
         </table>
@@ -135,6 +135,7 @@
       let currentUser = null;
       let devices = [];
       let issues = [];
+      let holdings = [];
 
       const ensureAuth = () => {
         if (!window.assetTrackingApi?.getToken()) {
@@ -162,6 +163,11 @@
         issues = data.issues || [];
       };
 
+      const loadHoldings = async () => {
+        const data = await window.assetTrackingApi.apiFetch("/api/ops-holdings");
+        holdings = data.holdings || [];
+      };
+
 
       const renderReceivedDevices = () => {
         const location = sharedLocationSelect.value.trim();
@@ -170,29 +176,29 @@
         if (!location) {
           receivedDevicesBody.innerHTML = `
             <tr class="empty-row">
-              <td colspan="3">Select a location to view issued devices.</td>
+              <td colspan="3">Select a location to view received devices.</td>
             </tr>
           `;
           return;
         }
 
-        const filtered = issues.filter((issue) => issue.location === location);
+        const filtered = holdings.filter((hold) => hold.location === location);
 
         if (!filtered.length) {
           receivedDevicesBody.innerHTML = `
             <tr class="empty-row">
-              <td colspan="3">No devices issued to this location.</td>
+              <td colspan="3">No devices received at this location.</td>
             </tr>
           `;
           return;
         }
 
-        filtered.forEach((issue) => {
+        filtered.forEach((hold) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${issue.device_identifier || "—"}</td>
-            <td>${issue.location || "—"}</td>
-            <td>${issue.issued_at ? String(issue.issued_at).replace("T", " ").slice(0, 16) : "—"}</td>
+            <td>${hold.device_identifier || "—"}</td>
+            <td>${hold.location || "—"}</td>
+            <td>${hold.scanned_at ? String(hold.scanned_at).replace("T", " ").slice(0, 16) : "—"}</td>
           `;
           receivedDevicesBody.appendChild(row);
         });
@@ -284,7 +290,12 @@
 
       const initPage = async () => {
         if (!ensureAuth()) return;
-        await Promise.all([loadCurrentUser(), loadDevices(), loadIssues()]);
+        await Promise.all([
+          loadCurrentUser(),
+          loadDevices(),
+          loadIssues(),
+          loadHoldings(),
+        ]);
         toggleSharedInputs();
         renderReceivedDevices();
       };
