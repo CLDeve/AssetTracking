@@ -717,6 +717,15 @@ h1 {
   font-size: 1.2rem;
 }
 
+.form-card.compact .asset-form {
+  gap: 12px;
+}
+
+.form-card.compact .asset-form input,
+.form-card.compact .asset-form select {
+  padding: 10px 12px;
+}
+
 .asset-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
