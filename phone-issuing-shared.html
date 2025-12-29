@@ -55,12 +55,7 @@
           <label>
             <span>Location</span>
             <select name="sharedLocation" id="sharedLocationSelect">
-              <option value="">Select location</option>
-              <option value="Terminal 1">Terminal 1</option>
-              <option value="Terminal 2">Terminal 2</option>
-              <option value="Terminal 3">Terminal 3</option>
-              <option value="Terminal 4">Terminal 4</option>
-              <option value="Seletar">Seletar</option>
+              <option value="">Loading locations...</option>
             </select>
           </label>
           <label>
@@ -146,11 +141,19 @@
       };
 
       const loadCurrentUser = async () => {
-        currentUser = window.assetTrackingApi.getStoredUser();
-        if (currentUser) return;
-        const data = await window.assetTrackingApi.apiFetch("/api/me");
-        currentUser = data.user;
-        window.assetTrackingApi.setStoredUser(currentUser);
+        const storedUser = window.assetTrackingApi.getStoredUser();
+        if (storedUser) {
+          currentUser = storedUser;
+        }
+        try {
+          const data = await window.assetTrackingApi.apiFetch("/api/me");
+          currentUser = data.user;
+          window.assetTrackingApi.setStoredUser(currentUser);
+        } catch (error) {
+          if (!currentUser) {
+            throw error;
+          }
+        }
       };
 
       const parseLocations = (value) =>
@@ -161,10 +164,18 @@
 
       const updateLocationOptions = () => {
         const locations = parseLocations(currentUser?.location || "");
+        sharedLocationSelect.innerHTML = "";
         if (!locations.length) {
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "No locations assigned";
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          sharedLocationSelect.appendChild(placeholder);
+          sharedLocationSelect.disabled = true;
           return;
         }
-        sharedLocationSelect.innerHTML = "";
+        sharedLocationSelect.disabled = false;
         if (locations.length > 1) {
           const placeholder = document.createElement("option");
           placeholder.value = "";

@@ -725,7 +725,7 @@
 
         try {
           const displayName = username.split("@")[0] || username;
-          await window.assetTrackingApi.apiFetch(
+          const result = await window.assetTrackingApi.apiFetch(
             `/api/users/${encodeURIComponent(editingUserId)}`,
             {
               method: "PUT",
@@ -738,6 +738,10 @@
               }),
             }
           );
+          const storedUser = window.assetTrackingApi.getStoredUser();
+          if (storedUser && String(storedUser.id) === String(editingUserId)) {
+            window.assetTrackingApi.setStoredUser(result.user);
+          }
           const users = await loadUsers();
           renderUsers(users);
           closeEditModal();

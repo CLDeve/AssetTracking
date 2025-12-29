@@ -39,7 +39,6 @@ const loadSession = async () => {
 
   if (storedUser) {
     updateSessionUI(storedUser);
-    return;
   }
 
   try {
@@ -47,9 +46,11 @@ const loadSession = async () => {
     window.assetTrackingApi.setStoredUser(data.user);
     updateSessionUI(data.user);
   } catch (error) {
-    window.assetTrackingApi.setToken(null);
-    window.assetTrackingApi.setStoredUser(null);
-    updateSessionUI(null);
+    if (!storedUser) {
+      window.assetTrackingApi.setToken(null);
+      window.assetTrackingApi.setStoredUser(null);
+      updateSessionUI(null);
+    }
   }
 };
 
