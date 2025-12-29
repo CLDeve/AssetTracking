@@ -732,6 +732,16 @@ h1 {
   gap: 18px;
 }
 
+.asset-form.inline-actions {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  align-items: end;
+}
+
+.asset-form.inline-actions .form-actions {
+  justify-content: flex-start;
+  align-items: end;
+}
+
 .user-form {
   grid-template-columns: repeat(3, minmax(220px, 1fr));
   align-items: end;

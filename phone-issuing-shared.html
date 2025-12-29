@@ -66,7 +66,7 @@
       </section>
 
       <section class="form-card compact" data-permission="phone_issuing">
-        <form class="asset-form" id="sharedIssueForm">
+        <form class="asset-form inline-actions" id="sharedIssueForm">
           <label>
             <span>Team or shift name</span>
             <input
@@ -87,7 +87,6 @@
           </label>
           <div class="form-actions">
             <button class="secondary-button" type="reset">Clear</button>
-            <button class="primary-button" type="submit">Confirm issue</button>
           </div>
           <p class="form-message" id="sharedIssueMessage" role="status"></p>
         </form>
@@ -140,6 +139,7 @@
       let devices = [];
       let issues = [];
       let holdings = [];
+      let isSubmitting = false;
 
       const ensureAuth = () => {
         if (!window.assetTrackingApi?.getToken()) {
@@ -266,31 +266,15 @@
       sharedLocationSelect.addEventListener("change", toggleSharedInputs);
       sharedLocationSelect.addEventListener("change", renderReceivedDevices);
 
-      sharedIssueForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
+      const submitSharedIssue = async () => {
         if (!ensureAuth()) return;
+        if (isSubmitting) return;
         const formData = new FormData(sharedIssueForm);
         const teamName = String(formData.get("teamName") || "").trim();
         const deviceBarcode = String(formData.get("deviceBarcode") || "").trim();
         const location = String(formData.get("sharedLocation") || "").trim();
 
-        if (!location) {
-          sharedIssueMessage.textContent = "Please select a location.";
-          sharedIssueMessage.className = "form-message error";
-          return;
-        }
-
-        if (!teamName) {
-          sharedIssueMessage.textContent = "Please enter the team or shift name.";
-          sharedIssueMessage.className = "form-message error";
-          return;
-        }
-
-        if (!deviceBarcode) {
-          sharedIssueMessage.textContent = "Please scan the device barcode.";
-          sharedIssueMessage.className = "form-message error";
-          return;
-        }
+        if (!location || !teamName || !deviceBarcode) return;
 
         const match = devices.find(
           (device) =>
@@ -318,6 +302,7 @@
         }
 
         try {
+          isSubmitting = true;
           await window.assetTrackingApi.apiFetch("/api/issues", {
             method: "POST",
             body: JSON.stringify({
@@ -329,11 +314,38 @@
           });
           sharedIssueMessage.textContent = "Shared device issued successfully.";
           sharedIssueMessage.className = "form-message success";
-          sharedIssueForm.reset();
+          sharedTeamInput.value = "";
+          sharedBarcodeInput.value = "";
+          sharedBarcodeInput.focus();
           await loadIssues();
         } catch (error) {
           sharedIssueMessage.textContent = "Unable to issue device.";
           sharedIssueMessage.className = "form-message error";
+        } finally {
+          isSubmitting = false;
+        }
+      };
+
+      const maybeSubmitSharedIssue = () => {
+        if (!sharedLocationSelect.value.trim()) return;
+        if (!sharedTeamInput.value.trim()) return;
+        if (!sharedBarcodeInput.value.trim()) return;
+        submitSharedIssue();
+      };
+
+      sharedIssueForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitSharedIssue();
+      });
+
+      sharedTeamInput.addEventListener("change", maybeSubmitSharedIssue);
+      sharedTeamInput.addEventListener("blur", maybeSubmitSharedIssue);
+      sharedBarcodeInput.addEventListener("change", maybeSubmitSharedIssue);
+      sharedBarcodeInput.addEventListener("blur", maybeSubmitSharedIssue);
+      sharedBarcodeInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          maybeSubmitSharedIssue();
         }
       });
 
