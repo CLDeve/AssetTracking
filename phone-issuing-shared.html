@@ -51,13 +51,22 @@
       </section>
 
       <section class="form-card" data-permission="phone_issuing">
-        <form class="asset-form" id="sharedIssueForm">
+        <div class="form-header">
+          <h2>Location</h2>
+          <p class="subtitle">Select the location to issue devices for.</p>
+        </div>
+        <div class="asset-form">
           <label class="full-row">
             <span>Location</span>
             <select name="sharedLocation" id="sharedLocationSelect">
               <option value="">Loading locations...</option>
             </select>
           </label>
+        </div>
+      </section>
+
+      <section class="form-card" data-permission="phone_issuing">
+        <form class="asset-form" id="sharedIssueForm">
           <label>
             <span>Team or shift name</span>
             <input
