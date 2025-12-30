@@ -133,15 +133,18 @@
           if (pendingCount > 0) {
             pendingBadge.textContent = pendingCount > 99 ? "99+" : pendingCount;
             pendingBadge.hidden = false;
+            pendingBadge.style.display = "inline-flex";
             locationCard?.classList.add("has-pending");
           } else {
             pendingBadge.textContent = "";
             pendingBadge.hidden = true;
+            pendingBadge.style.display = "none";
             locationCard?.classList.remove("has-pending");
           }
         } catch (error) {
           pendingBadge.textContent = "";
           pendingBadge.hidden = true;
+          pendingBadge.style.display = "none";
           locationCard?.classList.remove("has-pending");
         }
       };
