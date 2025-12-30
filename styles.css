@@ -696,19 +696,33 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 18px rgba(0, 113, 227, 0.25);
-  animation: badge-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 10px 22px rgba(0, 113, 227, 0.35);
 }
 
-@keyframes badge-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 8px 18px rgba(0, 113, 227, 0.25);
+.detail-card.has-pending {
+  position: relative;
+  border-color: rgba(0, 113, 227, 0.35);
+  box-shadow:
+    0 20px 45px rgba(0, 113, 227, 0.2),
+    0 0 0 1px rgba(0, 113, 227, 0.25);
+  animation: card-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes card-glow {
+  0% {
+    box-shadow:
+      0 20px 45px rgba(0, 113, 227, 0.18),
+      0 0 0 1px rgba(0, 113, 227, 0.25);
   }
   50% {
-    transform: scale(1.08);
-    box-shadow: 0 12px 24px rgba(0, 113, 227, 0.4);
+    box-shadow:
+      0 28px 60px rgba(0, 113, 227, 0.35),
+      0 0 0 2px rgba(0, 113, 227, 0.45);
+  }
+  100% {
+    box-shadow:
+      0 20px 45px rgba(0, 113, 227, 0.18),
+      0 0 0 1px rgba(0, 113, 227, 0.25);
   }
 }
 
