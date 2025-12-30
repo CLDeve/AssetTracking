@@ -1193,6 +1193,15 @@ button:disabled {
 }
 
 .device-table thead th {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+.device-table tbody td {
+  font-size: 0.82rem;
+}
+
+.device-table thead th {
   text-align: left;
   font-size: 0.7rem;
   text-transform: uppercase;
