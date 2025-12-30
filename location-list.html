@@ -235,11 +235,40 @@
               <td>${hold.device_identifier || "—"}</td>
               <td>${hold.username || "—"}</td>
               <td>${hold.location || "—"}</td>
-              <td>${hold.scanned_at ? String(hold.scanned_at).replace("T", " ").slice(0, 16) : "—"}</td>
+              <td>${formatTimestamp(hold.scanned_at) || "—"}</td>
             `;
             holdingBody.appendChild(row);
           });
         }
+      };
+
+      const formatTimestamp = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        const formatter = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Singapore",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+        const parts = formatter.formatToParts(date);
+        const lookup = Object.fromEntries(
+          parts
+            .filter((part) => part.type !== "literal")
+            .map((part) => [part.type, part.value])
+        );
+        const day = lookup.day;
+        const month = lookup.month;
+        const year = lookup.year;
+        const hours = lookup.hour;
+        const minutes = lookup.minute;
+        const seconds = lookup.second;
+        return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
       };
 
       const updateLocationHeader = (activeUser) => {
