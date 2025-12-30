@@ -1193,12 +1193,16 @@ button:disabled {
 }
 
 .device-table thead th {
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  padding: 10px 8px;
 }
 
 .device-table tbody td {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  padding: 10px 8px;
 }
 
 .device-table thead th {
