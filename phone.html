@@ -135,10 +135,12 @@
             pendingBadge.hidden = false;
             locationCard?.classList.add("has-pending");
           } else {
+            pendingBadge.textContent = "";
             pendingBadge.hidden = true;
             locationCard?.classList.remove("has-pending");
           }
         } catch (error) {
+          pendingBadge.textContent = "";
           pendingBadge.hidden = true;
           locationCard?.classList.remove("has-pending");
         }
