@@ -70,7 +70,10 @@
         >
           <article class="detail-card">
             <div class="card-hero tablet"></div>
-            <h2>Location list</h2>
+            <div class="card-title-row">
+              <h2>Location list</h2>
+              <span class="card-badge" id="locationPendingBadge" hidden>0</span>
+            </div>
             <p>View pending devices per location and confirm scanned handoffs.</p>
           </article>
         </a>
@@ -92,6 +95,53 @@
     <script src="api.js"></script>
     <script src="app-permissions.js"></script>
     <script src="app-session.js"></script>
+    <script>
+      const pendingBadge = document.getElementById("locationPendingBadge");
+
+      const parseLocations = (value) =>
+        String(value || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      const updatePendingBadge = async () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          return;
+        }
+        try {
+          const [me, deviceData, holdingsData] = await Promise.all([
+            window.assetTrackingApi.apiFetch("/api/me"),
+            window.assetTrackingApi.apiFetch("/api/devices"),
+            window.assetTrackingApi.apiFetch("/api/ops-holdings"),
+          ]);
+          const locations = parseLocations(me?.user?.location || "");
+          if (!locations.length) {
+            return;
+          }
+          const locationSet = new Set(locations);
+          const holdings = holdingsData.holdings || [];
+          const devices = deviceData.devices || [];
+          const holdingIds = new Set(
+            holdings.map((hold) => String(hold.device_identifier || ""))
+          );
+          const pendingCount = devices.filter(
+            (device) =>
+              locationSet.has(device.device_location) &&
+              !holdingIds.has(String(device.device_id || ""))
+          ).length;
+          if (pendingCount > 0) {
+            pendingBadge.textContent = pendingCount > 99 ? "99+" : pendingCount;
+            pendingBadge.hidden = false;
+          } else {
+            pendingBadge.hidden = true;
+          }
+        } catch (error) {
+          pendingBadge.hidden = true;
+        }
+      };
+
+      updatePendingBadge();
+    </script>
       <script src="loader.js"></script>
   </body>
 </html>

@@ -677,6 +677,28 @@ h1 {
   gap: 14px;
 }
 
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-badge {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #0071e3;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(0, 113, 227, 0.25);
+}
+
 .detail-card-link:hover .detail-card {
   transform: translateY(-4px);
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.16);
