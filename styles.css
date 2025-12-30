@@ -252,9 +252,9 @@ body::before {
 }
 
 .dashboard {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 56px 24px 70px;
+  padding: 56px 36px 70px;
   display: grid;
   gap: 32px;
 }
