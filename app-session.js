@@ -23,6 +23,27 @@ const updateSessionUI = (user) => {
   });
 };
 
+const applyVersion = () => {
+  const version = window.ASSET_TRACKING_VERSION;
+  if (!version) {
+    return;
+  }
+
+  document.querySelectorAll(".brand").forEach((brand) => {
+    if (!(brand instanceof HTMLElement)) {
+      return;
+    }
+    let node = brand.querySelector("[data-app-version]");
+    if (!node) {
+      node = document.createElement("span");
+      node.className = "app-version";
+      node.setAttribute("data-app-version", "");
+      brand.appendChild(node);
+    }
+    node.textContent = version;
+  });
+};
+
 const loadSession = async () => {
   if (!window.assetTrackingApi) {
     updateSessionUI(null);
@@ -55,6 +76,7 @@ const loadSession = async () => {
 };
 
 loadSession();
+applyVersion();
 
 const getSectionFromPath = (path) => {
   if (!path || path === "index.html") {
