@@ -452,7 +452,7 @@
           <td>${formatDateDdmmyyy(device.contractStart)}</td>
           <td>${formatDateDdmmyyy(device.contractEnd)}</td>
           <td>${device.mdmText || "—"}</td>
-          <td>${formatDate(device.mdmExpiry)}</td>
+          <td>${formatDateDdmmyyy(device.mdmExpiry)}</td>
           <td class="status-col">
             <button
               class="status-toggle ${isActive ? "" : "is-inactive"}"
