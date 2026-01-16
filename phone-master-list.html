@@ -377,6 +377,32 @@
 
       const formatDate = (value) => (value ? value : "—");
 
+      const formatDateDdmmyyy = (value) => {
+        if (!value) return "—";
+        const parts = String(value).split("-");
+        if (parts.length !== 3) return value;
+        const [year, month, day] = parts;
+        const monthIndex = Number(month) - 1;
+        if (!year || !day || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+          return value;
+        }
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        return `${day}-${monthNames[monthIndex]}-${year}`;
+      };
+
       const normalizeDate = (value) =>
         value ? String(value).slice(0, 10) : "";
 
@@ -424,7 +450,7 @@
           <td>${device.telcoContractNumber || "—"}</td>
           <td>${device.phone || "—"}</td>
           <td>${formatDate(device.contractStart)}</td>
-          <td>${formatDate(device.contractEnd)}</td>
+          <td>${formatDateDdmmyyy(device.contractEnd)}</td>
           <td>${device.mdmText || "—"}</td>
           <td>${formatDate(device.mdmExpiry)}</td>
           <td class="status-col">
