@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-loader" data-page-loader>
+      <div class="spinner" aria-label="Loading" role="status"></div>
+    </div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-name">Asset Tracking</span>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html" data-nav="store">Store</a>
+        <a href="phone.html" data-nav="phones">Phones</a>
+        <a
+          href="user-management.html"
+          data-permission="admin_user_management"
+          data-nav="user-management"
+        >
+          User management
+        </a>
+        <a
+          href="audit-log.html"
+          data-permission="admin_audit_log"
+          data-nav="audit-log"
+        >
+          Audit log
+        </a>
+      </nav>
+      <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Search">
+          ⌕
+        </button>
+        <div class="user-menu">
+          <button class="user-chip user-chip-button" type="button" data-user-menu-toggle>
+            <span class="user-label">User</span>
+            <span class="user-name" data-current-user>Guest</span>
+            <span class="user-caret">▾</span>
+          </button>
+          <div class="user-dropdown" data-user-menu>
+            <a class="dropdown-link" href="logout.html" data-logout-link>Logout</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero-store">
+        <div>
+          <p class="hero-kicker">Phone dashboard</p>
+          <h1>Device summary</h1>
+          <p class="subtitle">
+            Live totals from registered devices across models and locations.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Overview</h2>
+            <p class="subtitle">Available = Active devices.</p>
+          </div>
+        </div>
+        <div class="summary" id="summaryCards"></div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Availability by model</h2>
+            <p class="subtitle">Counts are grouped by device model.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table summary-table" id="modelSummaryTable">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th class="number">Available</th>
+                <th class="number">Inactive</th>
+                <th class="number">Total</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
+            <h2>Availability by location</h2>
+            <p class="subtitle">Counts are grouped by registered location.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="device-table summary-table" id="locationSummaryTable">
+            <thead>
+              <tr>
+                <th>Location</th>
+                <th class="number">Available</th>
+                <th class="number">Inactive</th>
+                <th class="number">Total</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <script src="app-permissions.js"></script>
+    <script src="app-session.js"></script>
+    <script>
+      const summaryCards = document.getElementById("summaryCards");
+      const modelSummaryTable = document.getElementById("modelSummaryTable");
+      const locationSummaryTable = document.getElementById("locationSummaryTable");
+
+      const ensureAuth = () => {
+        if (!window.assetTrackingApi?.getToken()) {
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      };
+
+      const normalizeText = (value) => String(value || "").trim();
+      const normalizeStatus = (value) =>
+        String(value || "").trim().toLowerCase();
+      const isActive = (value) => normalizeStatus(value) === "active";
+
+      const createSummaryCard = (label, value) => {
+        const card = document.createElement("div");
+        card.className = "summary-card";
+        card.innerHTML = `
+          <p class="summary-label">${label}</p>
+          <p class="summary-value">${value}</p>
+        `;
+        return card;
+      };
+
+      const buildCounts = (devices, keyGetter) => {
+        const map = new Map();
+        devices.forEach((device) => {
+          const key = normalizeText(keyGetter(device)) || "Unspecified";
+          const entry = map.get(key) || { label: key, active: 0, inactive: 0 };
+          if (isActive(device.device_status)) {
+            entry.active += 1;
+          } else {
+            entry.inactive += 1;
+          }
+          map.set(key, entry);
+        });
+        return Array.from(map.values()).sort((a, b) =>
+          a.label.localeCompare(b.label)
+        );
+      };
+
+      const renderTable = (table, rows) => {
+        const tbody = table.querySelector("tbody");
+        const tfoot = table.querySelector("tfoot");
+        tbody.innerHTML = "";
+        tfoot.innerHTML = "";
+
+        if (!rows.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4">No registered devices yet.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        let totalActive = 0;
+        let totalInactive = 0;
+        rows.forEach((row) => {
+          const total = row.active + row.inactive;
+          totalActive += row.active;
+          totalInactive += row.inactive;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.label}</td>
+            <td class="number">${row.active}</td>
+            <td class="number">${row.inactive}</td>
+            <td class="number">${total}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        const totalRow = document.createElement("tr");
+        totalRow.innerHTML = `
+          <td>Total</td>
+          <td class="number">${totalActive}</td>
+          <td class="number">${totalInactive}</td>
+          <td class="number">${totalActive + totalInactive}</td>
+        `;
+        tfoot.appendChild(totalRow);
+      };
+
+      const renderSummary = (devices) => {
+        summaryCards.innerHTML = "";
+        const activeCount = devices.filter((device) =>
+          isActive(device.device_status)
+        ).length;
+        const inactiveCount = devices.length - activeCount;
+        summaryCards.appendChild(createSummaryCard("Total devices", devices.length));
+        summaryCards.appendChild(createSummaryCard("Available", activeCount));
+        summaryCards.appendChild(createSummaryCard("Inactive", inactiveCount));
+      };
+
+      const loadDashboard = async () => {
+        if (!ensureAuth()) return;
+        try {
+          const data = await window.assetTrackingApi.apiFetch("/api/devices");
+          const devices = data.devices || [];
+          renderSummary(devices);
+          renderTable(
+            modelSummaryTable,
+            buildCounts(devices, (device) => device.model)
+          );
+          renderTable(
+            locationSummaryTable,
+            buildCounts(devices, (device) => device.device_location)
+          );
+        } catch (error) {
+          renderSummary([]);
+          renderTable(modelSummaryTable, []);
+          renderTable(locationSummaryTable, []);
+        }
+      };
+
+      loadDashboard();
+    </script>
+    <script src="loader.js"></script>
+  </body>
+</html>
