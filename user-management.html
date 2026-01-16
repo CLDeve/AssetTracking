@@ -60,15 +60,30 @@
           </div>
         </div>
         <form class="role-permissions-form" id="rolePermissionsForm">
-          <label>
-            <span>Role</span>
-            <select id="rolePermissionSelect">
-              <option value="Admin">Admin</option>
-              <option value="Supervisor">Supervisor</option>
-              <option value="Operator">Operator</option>
-              <option value="Viewer">Viewer</option>
-            </select>
-          </label>
+          <div class="role-permissions-toolbar">
+            <label class="role-select">
+              <span>Role</span>
+              <select id="rolePermissionSelect">
+                <option value="Admin">Admin</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Operator">Operator</option>
+                <option value="Viewer">Viewer</option>
+              </select>
+            </label>
+            <div class="role-permissions-actions">
+              <button
+                class="primary-button"
+                type="submit"
+                id="savePermissionsBtn"
+                disabled
+              >
+                Save permissions
+              </button>
+            </div>
+          </div>
+          <p class="role-permissions-hint">
+            Changes apply immediately for the selected role.
+          </p>
           <div class="permission-checklist" id="permissionChecklist">
             <label class="check-item">
               <input type="checkbox" value="register_device" checked />
@@ -94,16 +109,6 @@
               <input type="checkbox" value="user_management" checked />
               <span>User management</span>
             </label>
-          </div>
-          <div class="form-actions">
-            <button
-              class="primary-button"
-              type="submit"
-              id="savePermissionsBtn"
-              disabled
-            >
-              Save permissions
-            </button>
           </div>
         </form>
       </section>
@@ -381,6 +386,14 @@
         if (depth > 0) {
           wrapper.classList.add("is-nested");
         }
+        if (depth === 0) {
+          wrapper.classList.add("is-group");
+        } else if (depth === 1) {
+          wrapper.classList.add("is-subgroup");
+        } else {
+          wrapper.classList.add("is-leaf");
+        }
+        wrapper.dataset.depth = String(depth);
 
         wrapper.innerHTML = `
           <label class="check-item">

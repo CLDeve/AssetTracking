@@ -1057,6 +1057,54 @@ button:disabled {
   padding: 10px 0;
 }
 
+.role-permissions-form {
+  display: grid;
+  gap: 16px;
+}
+
+.role-permissions-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-soft);
+}
+
+.role-permissions-toolbar .role-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.role-permissions-toolbar .role-select select {
+  min-width: 220px;
+}
+
+.role-permissions-actions .primary-button {
+  min-width: 170px;
+}
+
+.role-permissions-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.role-permissions-form .permission-checklist {
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
 .permission-row {
   display: grid;
   gap: 10px;
@@ -1065,6 +1113,8 @@ button:disabled {
   border: 1px solid rgba(15, 23, 42, 0.06);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
 }
 
 .permission-row.is-nested {
@@ -1073,15 +1123,51 @@ button:disabled {
   box-shadow: none;
 }
 
+.permission-row.is-group::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 0;
+  border-left: 4px solid var(--accent);
+  opacity: 0.9;
+}
+
+.permission-row.is-subgroup::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 0;
+  border-left: 3px solid rgba(0, 113, 227, 0.45);
+}
+
+.permission-row.is-leaf::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 0;
+  border-left: 2px solid rgba(15, 23, 42, 0.12);
+}
+
 .permission-children {
   display: grid;
   gap: 10px;
   padding-left: 16px;
+  border-left: 1px dashed rgba(15, 23, 42, 0.12);
 }
 
 .permission-row > .check-item span {
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.permission-row.is-group > .check-item span {
+  font-size: 1rem;
+}
+
+.permission-row.is-subgroup > .check-item span {
+  font-size: 0.95rem;
+}
+
+.permission-row.is-leaf > .check-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .permission-children .check-item span {
@@ -1094,6 +1180,8 @@ button:disabled {
   gap: 10px;
   font-size: 0.93rem;
   color: var(--ink);
+  position: relative;
+  z-index: 1;
 }
 
 .check-item input {
@@ -1355,5 +1443,14 @@ button:disabled {
   .hero-split {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .role-permissions-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .role-permissions-actions .primary-button {
+    width: 100%;
   }
 }
