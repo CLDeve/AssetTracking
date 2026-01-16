@@ -403,6 +403,57 @@
         return `${day}-${monthNames[monthIndex]}-${year}`;
       };
 
+      const normalizeText = (value) => String(value || "").trim().toLowerCase();
+      const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
+      const isActiveStatus = (value) => normalizeText(value) === "active";
+
+      const getDuplicateWarnings = (record, ignoreId = null) => {
+        const warnings = [];
+        const deviceId = normalizeText(record.deviceId);
+        const imei = normalizeText(record.imei);
+        const phone = normalizePhone(record.phone);
+
+        if (deviceId) {
+          const match = devices.find(
+            (device) =>
+              device.id !== ignoreId &&
+              isActiveStatus(device.deviceStatus) &&
+              normalizeText(device.deviceId) === deviceId
+          );
+          if (match) {
+            warnings.push(`Device ID "${record.deviceId}" is already Active.`);
+          }
+        }
+
+        if (imei) {
+          const match = devices.find(
+            (device) =>
+              device.id !== ignoreId &&
+              isActiveStatus(device.deviceStatus) &&
+              normalizeText(device.imei) === imei
+          );
+          if (match) {
+            warnings.push(`IMEI "${record.imei}" is already Active.`);
+          }
+        }
+
+        if (phone) {
+          const match = devices.find(
+            (device) =>
+              device.id !== ignoreId &&
+              isActiveStatus(device.deviceStatus) &&
+              normalizePhone(device.phone) === phone
+          );
+          if (match) {
+            warnings.push(
+              `Phone number "${record.phone}" is already Active.`
+            );
+          }
+        }
+
+        return warnings;
+      };
+
       const normalizeDate = (value) =>
         value ? String(value).slice(0, 10) : "";
 
@@ -533,10 +584,10 @@
             device.telco || "",
             device.telcoContractNumber || "",
             device.phone || "",
-            device.contractStart || "",
-            device.contractEnd || "",
+            formatDateDdmmyyy(device.contractStart),
+            formatDateDdmmyyy(device.contractEnd),
             device.mdmText || "",
-            device.mdmExpiry || "",
+            formatDateDdmmyyy(device.mdmExpiry),
           ].map((value) => `"${String(value).replace(/\"/g, '""')}"`)
         );
 
@@ -589,6 +640,14 @@
           mdm,
           mdmExpiry,
         };
+
+        const duplicateWarnings = getDuplicateWarnings(deviceRecord);
+        if (duplicateWarnings.length) {
+          window.alert(
+            `${duplicateWarnings.join("\n")}\n\nSet the existing record to Inactive before registering this device.`
+          );
+          return;
+        }
 
         try {
           const data = await window.assetTrackingApi.apiFetch("/api/devices", {
@@ -667,6 +726,14 @@
           mdm: editForm.mdm.value,
           mdmExpiry: editForm.mdmExpiry.value,
         };
+
+        const duplicateWarnings = getDuplicateWarnings(updated, editingDeviceId);
+        if (duplicateWarnings.length) {
+          window.alert(
+            `${duplicateWarnings.join("\n")}\n\nSet the existing record to Inactive before saving.`
+          );
+          return;
+        }
 
         try {
           const data = await window.assetTrackingApi.apiFetch(
@@ -807,6 +874,7 @@
           mdm: "mdm",
           mdm_expiry_date: "mdmExpiry",
         };
+        const bulkErrors = [];
 
         for (const line of rows) {
           const values = parseCsvLine(line);
@@ -818,6 +886,13 @@
             payload[key] = values[index] || "";
           });
           if (!payload.deviceId) continue;
+          const duplicateWarnings = getDuplicateWarnings(payload);
+          if (duplicateWarnings.length) {
+            bulkErrors.push(
+              `Skipped ${payload.deviceId}: ${duplicateWarnings.join(" ")}`
+            );
+            continue;
+          }
           try {
             await window.assetTrackingApi.apiFetch("/api/devices", {
               method: "POST",
@@ -826,6 +901,14 @@
           } catch (error) {
             continue;
           }
+        }
+
+        if (bulkErrors.length) {
+          window.alert(
+            `Some devices were skipped:\n\n${bulkErrors.join(
+              "\n"
+            )}\n\nSet the existing record to Inactive before re-uploading.`
+          );
         }
 
         await fetchDevices();

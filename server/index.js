@@ -299,8 +299,58 @@ app.get("/api/devices", auth, async (_req, res) => {
   res.json({ devices: result.rows });
 });
 
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
+
+const findActiveDuplicate = async ({ deviceId, imei, phone }, ignoreId = null) => {
+  const conflicts = [];
+
+  if (normalizeText(deviceId)) {
+    const result = await pool.query(
+      "SELECT id, device_id FROM devices WHERE device_status = 'Active' AND lower(device_id) = lower($1) AND ($2::int IS NULL OR id <> $2) LIMIT 1",
+      [deviceId, ignoreId]
+    );
+    if (result.rows.length) {
+      conflicts.push({ field: "deviceId", value: result.rows[0].device_id });
+    }
+  }
+
+  if (normalizeText(imei)) {
+    const result = await pool.query(
+      "SELECT id, imei FROM devices WHERE device_status = 'Active' AND lower(imei) = lower($1) AND ($2::int IS NULL OR id <> $2) LIMIT 1",
+      [imei, ignoreId]
+    );
+    if (result.rows.length) {
+      conflicts.push({ field: "imei", value: result.rows[0].imei });
+    }
+  }
+
+  if (normalizePhone(phone)) {
+    const result = await pool.query(
+      "SELECT id, phone FROM devices WHERE device_status = 'Active' AND regexp_replace(phone, '\\\\D', '', 'g') = regexp_replace($1, '\\\\D', '', 'g') AND ($2::int IS NULL OR id <> $2) LIMIT 1",
+      [phone, ignoreId]
+    );
+    if (result.rows.length) {
+      conflicts.push({ field: "phone", value: result.rows[0].phone });
+    }
+  }
+
+  return conflicts;
+};
+
 app.post("/api/devices", auth, async (req, res) => {
   const d = req.body;
+  const conflicts = await findActiveDuplicate({
+    deviceId: d.deviceId,
+    imei: d.imei,
+    phone: d.phone,
+  });
+  if (conflicts.length) {
+    return res.status(409).json({
+      error: "Duplicate active device",
+      conflicts,
+    });
+  }
   const result = await pool.query(
     `INSERT INTO devices
       (device_id, imei, model, device_type, device_status, device_location, telco, telco_contract_number, phone, contract_start, contract_end, mdm, mdm_expiry)
@@ -329,6 +379,20 @@ app.post("/api/devices", auth, async (req, res) => {
 app.put("/api/devices/:id", auth, async (req, res) => {
   const { id } = req.params;
   const d = req.body;
+  const conflicts = await findActiveDuplicate(
+    {
+      deviceId: d.deviceId,
+      imei: d.imei,
+      phone: d.phone,
+    },
+    Number(id)
+  );
+  if (conflicts.length) {
+    return res.status(409).json({
+      error: "Duplicate active device",
+      conflicts,
+    });
+  }
   const result = await pool.query(
     `UPDATE devices SET
       device_id = $1,
