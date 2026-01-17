@@ -1219,6 +1219,41 @@ button:disabled {
   transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
+.password-toggle.icon-toggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle .icon-eye {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.password-toggle .icon-eye-off {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  display: none;
+}
+
+.password-toggle.is-visible .icon-eye {
+  display: none;
+}
+
+.password-toggle.is-visible .icon-eye-off {
+  display: inline;
+}
+
+.password-toggle.is-visible {
+  color: var(--ink);
+  border-color: rgba(0, 113, 227, 0.4);
+}
+
 .password-toggle:hover {
   border-color: rgba(0, 113, 227, 0.4);
   color: var(--ink);

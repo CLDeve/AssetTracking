@@ -14,13 +14,7 @@
       <div class="brand">
         <span class="brand-name">Asset Tracking</span>
       </div>
-          <nav class="topbar-nav">
-        <a href="index.html" data-nav="store" data-permission="store">Store</a>
-        <a href="phone.html" data-nav="phones" data-permission="store_phone">Phones</a>        <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
-          User management
-        </a>
-        <a href="audit-log.html" data-permission="admin_audit_log" data-nav="audit-log">Audit log</a>
-      </nav>
+      <nav class="topbar-nav" aria-hidden="true"></nav>
       <div class="topbar-actions">
         <button class="icon-button" type="button" aria-label="Search">
           ⌕
@@ -68,12 +62,21 @@
                 data-password-input
               />
               <button
-                class="password-toggle"
+                class="password-toggle icon-toggle"
                 type="button"
                 data-password-toggle
                 aria-label="Show password"
               >
-                Show
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5c-5.5 0-9.5 4.4-10.6 6.1a1.5 1.5 0 0 0 0 1.8C2.5 14.6 6.5 19 12 19s9.5-4.4 10.6-6.1a1.5 1.5 0 0 0 0-1.8C21.5 9.4 17.5 5 12 5zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"
+                  />
+                </svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M4.6 3.2 21 19.6l-1.4 1.4-3.1-3.1a11.9 11.9 0 0 1-4.5 1.1c-5.5 0-9.5-4.4-10.6-6.1a1.5 1.5 0 0 1 0-1.8 17.9 17.9 0 0 1 4.2-4.3L3.2 4.6 4.6 3.2zm3.7 3.7A7.9 7.9 0 0 0 2.8 12c1.2 1.7 4.7 5.1 9.2 5.1 1.2 0 2.2-.2 3.1-.5l-2-2a4 4 0 0 1-4.8-4.8L8.3 6.9zm7.8 7.8-2-2a4 4 0 0 0-2.9-2.9l-2-2A7.9 7.9 0 0 1 12 6.9a4 4 0 0 1 4 4c0 .7-.2 1.4-.4 2z"
+                  />
+                </svg>
               </button>
             </div>
           </label>
@@ -103,7 +106,7 @@
           const nextType = input.type === "password" ? "text" : "password";
           input.type = nextType;
           const isVisible = nextType === "text";
-          loginToggle.textContent = isVisible ? "Hide" : "Show";
+          loginToggle.classList.toggle("is-visible", isVisible);
           loginToggle.setAttribute(
             "aria-label",
             isVisible ? "Hide password" : "Show password"
