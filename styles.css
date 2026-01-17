@@ -1199,6 +1199,32 @@ button:disabled {
   z-index: 1;
 }
 
+.password-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.password-toggle {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.password-toggle:hover {
+  border-color: rgba(0, 113, 227, 0.4);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
 .summary-table .number {
   text-align: right;
 }
