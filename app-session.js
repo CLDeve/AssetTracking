@@ -78,12 +78,24 @@ const loadSession = async () => {
 loadSession();
 applyVersion();
 
+const enforceAuth = () => {
+  const current = window.location.pathname.split("/").pop() || "index.html";
+  if (current === "login.html" || current === "logout.html") {
+    return;
+  }
+  const token = window.assetTrackingApi?.getToken?.();
+  if (!token) {
+    window.location.href = "login.html";
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  enforceAuth();
+});
+
 const getSectionFromPath = (path) => {
   if (!path || path === "index.html") {
     return "store";
-  }
-  if (path.startsWith("phone-dashboard")) {
-    return "dashboard";
   }
   if (path.startsWith("phone")) {
     return "phones";
