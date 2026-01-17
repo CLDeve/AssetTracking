@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 INSERT INTO role_permissions (role, permissions)
 VALUES
-  ('Admin', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','store_tablet','store_camera','admin','admin_user_management','admin_audit_log']),
-  ('Supervisor', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','store_tablet','store_camera']),
-  ('Operator', ARRAY['store','store_phone','phone_location_list','phone_returning','phone_issuing']),
+  ('Admin', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','phone_issuing_personal','phone_issuing_shared','phone_issuing_bulk','store_tablet','store_camera','admin','admin_user_management','admin_audit_log']),
+  ('Supervisor', ARRAY['store','store_phone','phone_register_device','phone_location_list','phone_returning','phone_issuing','phone_issuing_personal','phone_issuing_shared','phone_issuing_bulk','store_tablet','store_camera']),
+  ('Operator', ARRAY['store','store_phone','phone_location_list','phone_returning','phone_issuing','phone_issuing_personal','phone_issuing_shared','phone_issuing_bulk']),
   ('Viewer', ARRAY['store'])
 ON CONFLICT (role) DO NOTHING;

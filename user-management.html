@@ -14,9 +14,10 @@
       <div class="brand">
         <span class="brand-name">Asset Tracking</span>
       </div>
-      <nav class="topbar-nav">
-        <a href="index.html" data-nav="store">Store</a>
-        <a href="phone.html" data-nav="phones">Phones</a>
+          <nav class="topbar-nav">
+        <a href="index.html" data-nav="store" data-permission="store">Store</a>
+        <a href="phone.html" data-nav="phones" data-permission="store_phone">Phones</a>
+        <a href="phone-dashboard.html" data-nav="dashboard" data-permission="store_phone">Dashboard</a>
         <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
           User management
         </a>
@@ -90,15 +91,15 @@
               <span>Register device</span>
             </label>
             <label class="check-item">
-              <input type="checkbox" value="issuing_personal" checked />
+              <input type="checkbox" value="phone_issuing_personal" checked />
               <span>Assign phones (Personal)</span>
             </label>
             <label class="check-item">
-              <input type="checkbox" value="issuing_shared" checked />
+              <input type="checkbox" value="phone_issuing_shared" checked />
               <span>Assign phones (Shared)</span>
             </label>
             <label class="check-item">
-              <input type="checkbox" value="bulk_issuing" checked />
+              <input type="checkbox" value="phone_issuing_bulk" checked />
               <span>Bulk issuing</span>
             </label>
             <label class="check-item">
@@ -316,7 +317,15 @@
               children: [
                 { key: "phone_register_device", label: "Register a device" },
                 { key: "phone_location_list", label: "Location list" },
-                { key: "phone_issuing", label: "Issuing" },
+                {
+                  key: "phone_issuing",
+                  label: "Issuing",
+                  children: [
+                    { key: "phone_issuing_personal", label: "Personal issue" },
+                    { key: "phone_issuing_shared", label: "Shared issue" },
+                    { key: "phone_issuing_bulk", label: "Bulk issuing" },
+                  ],
+                },
               ],
             },
             { key: "store_tablet", label: "Tablet" },
@@ -340,6 +349,9 @@
           "phone_register_device",
           "phone_location_list",
           "phone_issuing",
+          "phone_issuing_personal",
+          "phone_issuing_shared",
+          "phone_issuing_bulk",
           "store_tablet",
           "store_camera",
           "admin",
@@ -352,6 +364,9 @@
           "phone_register_device",
           "phone_location_list",
           "phone_issuing",
+          "phone_issuing_personal",
+          "phone_issuing_shared",
+          "phone_issuing_bulk",
           "store_tablet",
           "store_camera",
         ],
@@ -360,6 +375,9 @@
           "store_phone",
           "phone_location_list",
           "phone_issuing",
+          "phone_issuing_personal",
+          "phone_issuing_shared",
+          "phone_issuing_bulk",
         ],
         Viewer: ["store"],
       };

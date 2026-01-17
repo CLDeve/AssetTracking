@@ -98,6 +98,17 @@ body::before {
   transform: translateY(-1px);
 }
 
+.topbar-nav a.is-active {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.topbar-nav a.is-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;

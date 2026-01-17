@@ -6,6 +6,9 @@ const ROLE_PERMISSIONS_DEFAULT = {
     "phone_location_list",
     "phone_returning",
     "phone_issuing",
+    "phone_issuing_personal",
+    "phone_issuing_shared",
+    "phone_issuing_bulk",
     "store_tablet",
     "store_camera",
     "admin",
@@ -19,6 +22,9 @@ const ROLE_PERMISSIONS_DEFAULT = {
     "phone_location_list",
     "phone_returning",
     "phone_issuing",
+    "phone_issuing_personal",
+    "phone_issuing_shared",
+    "phone_issuing_bulk",
     "store_tablet",
     "store_camera",
   ],
@@ -28,6 +34,9 @@ const ROLE_PERMISSIONS_DEFAULT = {
     "phone_location_list",
     "phone_returning",
     "phone_issuing",
+    "phone_issuing_personal",
+    "phone_issuing_shared",
+    "phone_issuing_bulk",
   ],
   Viewer: ["store"],
 };
@@ -44,9 +53,9 @@ const LEGACY_PERMISSION_MAP = {
   register_device: "phone_register_device",
   returning: "phone_returning",
   location_list: "phone_location_list",
-  issuing_personal: "phone_issuing",
-  issuing_shared: "phone_issuing",
-  bulk_issuing: "phone_issuing",
+  issuing_personal: "phone_issuing_personal",
+  issuing_shared: "phone_issuing_shared",
+  bulk_issuing: "phone_issuing_bulk",
   user_management: "admin_user_management",
   audit_log: "admin_audit_log",
 };
@@ -59,6 +68,9 @@ const PARENT_MAP = {
   phone_location_list: ["store", "store_phone"],
   phone_returning: ["store", "store_phone"],
   phone_issuing: ["store", "store_phone"],
+  phone_issuing_personal: ["store", "store_phone", "phone_issuing"],
+  phone_issuing_shared: ["store", "store_phone", "phone_issuing"],
+  phone_issuing_bulk: ["store", "store_phone", "phone_issuing"],
   admin_user_management: ["admin"],
   admin_audit_log: ["admin"],
 };
@@ -73,6 +85,11 @@ const migratePermissions = (permissions = []) => {
     const parents = PARENT_MAP[permission] || [];
     parents.forEach((parent) => normalized.add(parent));
   });
+  if (normalized.has("phone_issuing")) {
+    normalized.add("phone_issuing_personal");
+    normalized.add("phone_issuing_shared");
+    normalized.add("phone_issuing_bulk");
+  }
   return Array.from(normalized);
 };
 

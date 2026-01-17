@@ -14,9 +14,10 @@
       <div class="brand">
         <span class="brand-name">Asset Tracking</span>
       </div>
-      <nav class="topbar-nav">
-        <a href="index.html" data-nav="store">Store</a>
-        <a href="phone.html" data-nav="phones">Phones</a>
+          <nav class="topbar-nav">
+        <a href="index.html" data-nav="store" data-permission="store">Store</a>
+        <a href="phone.html" data-nav="phones" data-permission="store_phone">Phones</a>
+        <a href="phone-dashboard.html" data-nav="dashboard" data-permission="store_phone">Dashboard</a>
         <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
           User management
         </a>
@@ -65,7 +66,7 @@
         <a
           class="detail-card-link"
           href="phone-issuing-bulk.html"
-          data-permission="phone_issuing"
+          data-permission="phone_issuing_bulk"
         >
           <article class="detail-card">
             <div class="card-hero tablet"></div>
