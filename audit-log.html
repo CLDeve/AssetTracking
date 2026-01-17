@@ -16,9 +16,7 @@
       </div>
           <nav class="topbar-nav">
         <a href="index.html" data-nav="store" data-permission="store">Store</a>
-        <a href="phone.html" data-nav="phones" data-permission="store_phone">Phones</a>
-        <a href="phone-dashboard.html" data-nav="dashboard" data-permission="store_phone">Dashboard</a>
-        <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
+        <a href="phone.html" data-nav="phones" data-permission="store_phone">Phones</a>        <a href="user-management.html" data-permission="admin_user_management" data-nav="user-management">
           User management
         </a>
         <a href="audit-log.html" data-permission="admin_audit_log" data-nav="audit-log">Audit log</a>
@@ -90,6 +88,33 @@
       const auditTableBody = document.getElementById("auditTableBody");
       const clearAuditButton = document.getElementById("clearAuditButton");
 
+      const formatAuditTimestamp = (value) => {
+        if (!value) return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "—";
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+      };
+
       const renderAuditLogs = async () => {
         const logs = await window.auditLog.fetchAuditLogs();
         auditTableBody.innerHTML = "";
@@ -105,7 +130,7 @@
         logs.forEach((entry) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${entry.created_at ? String(entry.created_at).replace("T", " ").slice(0, 16) : "—"}</td>
+            <td>${formatAuditTimestamp(entry.created_at)}</td>
             <td>${entry.role || "—"}</td>
             <td>${entry.action}</td>
             <td>${entry.details || "—"}</td>
