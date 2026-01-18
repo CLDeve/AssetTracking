@@ -115,6 +115,9 @@ const getRolePermissions = async () => {
 };
 
 const canAccess = async (role, permission) => {
+  if (role === "Admin") {
+    return true;
+  }
   const rolePermissions = await getRolePermissions();
   const permissions = rolePermissions[role] || [];
   if (permissions.includes(permission)) {
