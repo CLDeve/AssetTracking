@@ -1097,12 +1097,33 @@ button:disabled {
   color: var(--muted);
 }
 
-.role-permissions-toolbar .role-select select {
+.role-permissions-toolbar .role-select select,
+.role-permissions-toolbar .role-select input {
   min-width: 220px;
 }
 
 .role-permissions-actions .primary-button {
   min-width: 170px;
+}
+
+.role-create {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.role-create label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.role-create input {
+  min-width: 220px;
 }
 
 .role-permissions-hint {

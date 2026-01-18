@@ -52,6 +52,34 @@
       <section class="form-card">
         <div class="list-header">
           <div>
+            <h2>Create role</h2>
+            <p class="subtitle">Add a new role for permissions and users.</p>
+          </div>
+        </div>
+        <div class="role-create">
+          <label>
+            <span>New role</span>
+            <input
+              type="text"
+              id="newRoleInput"
+              placeholder="e.g. T2 Supervisor"
+              autocomplete="off"
+            />
+          </label>
+          <button
+            class="secondary-button"
+            type="button"
+            id="addRoleButton"
+            disabled
+          >
+            Add role
+          </button>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="list-header">
+          <div>
             <h2>Role permissions</h2>
             <p class="subtitle">
               Choose a role and check the functions to allow.
@@ -62,12 +90,7 @@
           <div class="role-permissions-toolbar">
             <label class="role-select">
               <span>Role</span>
-              <select id="rolePermissionSelect">
-                <option value="Admin">Admin</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Operator">Operator</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+              <select id="rolePermissionSelect" name="rolePermission" required></select>
             </label>
             <div class="role-permissions-actions">
               <button
@@ -131,12 +154,7 @@
           </label>
           <label>
             <span>Role</span>
-            <select name="role" required>
-              <option value="Admin">Admin</option>
-              <option value="Supervisor">Supervisor</option>
-              <option value="Operator">Operator</option>
-              <option value="Viewer">Viewer</option>
-            </select>
+            <select name="role" required></select>
           </label>
           <label>
             <span>Password</span>
@@ -233,12 +251,7 @@
             </label>
             <label>
               <span>Role</span>
-              <select name="role" required>
-                <option value="Admin">Admin</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Operator">Operator</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+              <select name="role" required></select>
             </label>
             <label>
               <span>Password (optional)</span>
@@ -311,6 +324,8 @@
       const rolePermissionSelect = document.getElementById(
         "rolePermissionSelect"
       );
+      const newRoleInput = document.getElementById("newRoleInput");
+      const addRoleButton = document.getElementById("addRoleButton");
       const permissionChecklist = document.getElementById(
         "permissionChecklist"
       );
@@ -329,6 +344,8 @@
       const userForm = document.getElementById("userForm");
       const addUserButton = document.getElementById("addUserButton");
       const userTableBody = document.getElementById("userTableBody");
+      const userRoleSelect = userForm.querySelector('select[name="role"]');
+      const editRoleSelect = editUserForm.querySelector('select[name="role"]');
 
       const PERMISSION_GROUPS = [
         {
@@ -407,6 +424,55 @@
       };
 
       let rolePermissions = null;
+      let customRoles = new Set();
+      let cachedUsers = [];
+
+      const normalizeRole = (value) => String(value || "").trim();
+
+      const getAllRoles = (users = []) => {
+        const roles = new Set(Object.keys(DEFAULT_ROLE_PERMISSIONS));
+        customRoles.forEach((role) => roles.add(role));
+        Object.keys(rolePermissions || {}).forEach((role) => roles.add(role));
+        users.forEach((user) => {
+          if (user?.role) {
+            roles.add(user.role);
+          }
+        });
+        return Array.from(roles).sort((a, b) => a.localeCompare(b));
+      };
+
+      const updateRoleSelect = (select, roles, fallbackRole) => {
+        if (!select) return;
+        const currentValue = normalizeRole(select.value);
+        select.innerHTML = "";
+        roles.forEach((role) => {
+          const option = document.createElement("option");
+          option.value = role;
+          option.textContent = role;
+          select.appendChild(option);
+        });
+        const nextValue = roles.includes(currentValue)
+          ? currentValue
+          : fallbackRole;
+        select.value = nextValue || "";
+      };
+
+      const updateRoleOptions = (users = cachedUsers) => {
+        cachedUsers = users;
+        const roles = getAllRoles(users);
+        const fallbackRole = roles[0] || "Admin";
+        updateRoleSelect(rolePermissionSelect, roles, fallbackRole);
+        updateRoleSelect(userRoleSelect, roles, fallbackRole);
+        updateRoleSelect(editRoleSelect, roles, fallbackRole);
+        updateAddRoleState();
+      };
+
+      const updateAddRoleState = () => {
+        if (!addRoleButton) return;
+        const role = normalizeRole(newRoleInput?.value);
+        const roles = getAllRoles(cachedUsers);
+        addRoleButton.disabled = !role || roles.includes(role);
+      };
 
       const ensureAuth = () => {
         if (!window.assetTrackingApi?.getToken()) {
@@ -461,6 +527,9 @@
       };
 
       const renderPermissionChecklist = (role) => {
+        if (!normalizeRole(role)) {
+          return;
+        }
         permissionChecklist.innerHTML = "";
         const allowed = new Set((rolePermissions || {})[role] || []);
         PERMISSION_GROUPS.forEach((group) => {
@@ -472,8 +541,37 @@
       };
 
       rolePermissionSelect.addEventListener("change", () => {
-        renderPermissionChecklist(rolePermissionSelect.value);
+        const role = normalizeRole(rolePermissionSelect.value);
+        if (!role) return;
+        renderPermissionChecklist(role);
       });
+
+      const addRole = () => {
+        const role = normalizeRole(newRoleInput?.value);
+        if (!role) return;
+        customRoles.add(role);
+        updateRoleOptions();
+        rolePermissionSelect.value = role;
+        renderPermissionChecklist(role);
+        if (newRoleInput) {
+          newRoleInput.value = "";
+        }
+        updateAddRoleState();
+      };
+
+      if (newRoleInput) {
+        newRoleInput.addEventListener("input", updateAddRoleState);
+        newRoleInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addRole();
+          }
+        });
+      }
+
+      if (addRoleButton) {
+        addRoleButton.addEventListener("click", addRole);
+      }
 
       const getChecklistState = () =>
         Array.from(permissionChecklist.querySelectorAll("input")).map(
@@ -572,7 +670,10 @@
       rolePermissionsForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!ensureAuth()) return;
-        const selectedRole = rolePermissionSelect.value;
+        const selectedRole = normalizeRole(rolePermissionSelect.value);
+        if (!selectedRole) {
+          return;
+        }
         const checked = Array.from(
           permissionChecklist.querySelectorAll("input:checked")
         ).map((input) => input.value);
@@ -602,6 +703,8 @@
           );
           rolePermissions = rolePermissions || {};
           rolePermissions[selectedRole] = Array.from(withParents);
+          customRoles.add(selectedRole);
+          updateRoleOptions();
         } catch (error) {
           return;
         }
@@ -707,6 +810,7 @@
             }),
           });
           const users = await loadUsers();
+          updateRoleOptions(users);
           renderUsers(users);
           userForm.reset();
           locationChecklist
@@ -720,9 +824,9 @@
 
       const updateUserSubmitState = () => {
         const formData = new FormData(userForm);
-        const username = String(formData.get("username") || "").trim();
-        const role = String(formData.get("role") || "").trim();
-        const password = String(formData.get("password") || "").trim();
+        const username = normalizeRole(formData.get("username"));
+        const role = normalizeRole(formData.get("role"));
+        const password = normalizeRole(formData.get("password"));
         const locationsSelected =
           locationChecklist.querySelectorAll("input:checked").length > 0;
         const validEmail = username.includes("@");
@@ -751,6 +855,8 @@
         editingUserId = user.id;
         editUserForm.username.value = user.username || "";
         editUserForm.role.value = user.role || "";
+        customRoles.add(user.role);
+        updateRoleOptions();
         editUserForm.password.value = "";
         const locations = new Set(parseLocations(user.location));
         editLocationChecklist
@@ -812,6 +918,7 @@
             window.assetTrackingApi.setStoredUser(result.user);
           }
           const users = await loadUsers();
+          updateRoleOptions(users);
           renderUsers(users);
           closeEditModal();
         } catch (error) {
@@ -864,9 +971,11 @@
         if (!ensureAuth()) return;
         initPasswordToggles();
         await loadRolePermissions();
-        renderPermissionChecklist(rolePermissionSelect.value);
         const users = await loadUsers();
+        updateRoleOptions(users);
+        renderPermissionChecklist(rolePermissionSelect.value);
         renderUsers(users);
+        updateAddRoleState();
       };
 
       initPage();
