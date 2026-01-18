@@ -275,8 +275,13 @@ app.patch("/api/users/:id/status", auth, async (req, res) => {
 });
 
 app.get("/api/role-permissions", auth, async (_req, res) => {
-  const result = await pool.query("SELECT role, permissions FROM role_permissions");
-  res.json({ roles: result.rows });
+  try {
+    const result = await pool.query("SELECT role, permissions FROM role_permissions");
+    res.json({ roles: result.rows });
+  } catch (error) {
+    console.error("Failed to load role permissions:", error.message);
+    res.status(500).json({ error: "Failed to load role permissions" });
+  }
 });
 
 app.put("/api/role-permissions/:role", auth, async (req, res) => {
@@ -286,12 +291,17 @@ app.put("/api/role-permissions/:role", auth, async (req, res) => {
     return res.status(400).json({ error: "Permissions must be an array" });
   }
 
-  await pool.query(
-    "INSERT INTO role_permissions (role, permissions) VALUES ($1, $2) ON CONFLICT (role) DO UPDATE SET permissions = $2",
-    [role, permissions]
-  );
-  await logAudit(req.user, "update_role_permissions", `${role}: ${permissions.join(", ")}`);
-  res.json({ ok: true });
+  try {
+    await pool.query(
+      "INSERT INTO role_permissions (role, permissions) VALUES ($1, $2) ON CONFLICT (role) DO UPDATE SET permissions = $2",
+      [role, permissions]
+    );
+    await logAudit(req.user, "update_role_permissions", `${role}: ${permissions.join(", ")}`);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Failed to save role permissions:", error.message);
+    res.status(500).json({ error: "Failed to save role permissions" });
+  }
 });
 
 app.get("/api/devices", auth, async (_req, res) => {

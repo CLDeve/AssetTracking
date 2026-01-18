@@ -106,6 +106,7 @@
           <p class="role-permissions-hint">
             Changes apply immediately for the selected role.
           </p>
+          <p class="form-message" id="rolePermissionsMessage" role="status"></p>
           <div class="permission-checklist" id="permissionChecklist">
             <label class="check-item">
               <input type="checkbox" value="register_device" checked />
@@ -341,6 +342,9 @@
         "rolePermissionsForm"
       );
       const savePermissionsBtn = document.getElementById("savePermissionsBtn");
+      const rolePermissionsMessage = document.getElementById(
+        "rolePermissionsMessage"
+      );
       const userForm = document.getElementById("userForm");
       const addUserButton = document.getElementById("addUserButton");
       const userTableBody = document.getElementById("userTableBody");
@@ -426,8 +430,18 @@
       let rolePermissions = null;
       let customRoles = new Set();
       let cachedUsers = [];
+      const ROLE_STORAGE_KEY = "assetTrackingRoleSelection";
 
       const normalizeRole = (value) => String(value || "").trim();
+      const getStoredRole = () =>
+        normalizeRole(localStorage.getItem(ROLE_STORAGE_KEY));
+      const setStoredRole = (role) => {
+        if (!role) {
+          localStorage.removeItem(ROLE_STORAGE_KEY);
+          return;
+        }
+        localStorage.setItem(ROLE_STORAGE_KEY, role);
+      };
 
       const getAllRoles = (users = []) => {
         const roles = new Set(Object.keys(DEFAULT_ROLE_PERMISSIONS));
@@ -460,7 +474,10 @@
       const updateRoleOptions = (users = cachedUsers) => {
         cachedUsers = users;
         const roles = getAllRoles(users);
-        const fallbackRole = roles[0] || "Admin";
+        const storedRole = getStoredRole();
+        const fallbackRole = roles.includes(storedRole)
+          ? storedRole
+          : roles[0] || "Admin";
         updateRoleSelect(rolePermissionSelect, roles, fallbackRole);
         updateRoleSelect(userRoleSelect, roles, fallbackRole);
         updateRoleSelect(editRoleSelect, roles, fallbackRole);
@@ -543,7 +560,12 @@
       rolePermissionSelect.addEventListener("change", () => {
         const role = normalizeRole(rolePermissionSelect.value);
         if (!role) return;
+        setStoredRole(role);
         renderPermissionChecklist(role);
+        if (rolePermissionsMessage) {
+          rolePermissionsMessage.textContent = "";
+          rolePermissionsMessage.className = "form-message";
+        }
       });
 
       const addRole = () => {
@@ -552,6 +574,7 @@
         customRoles.add(role);
         updateRoleOptions();
         rolePermissionSelect.value = role;
+        setStoredRole(role);
         renderPermissionChecklist(role);
         if (newRoleInput) {
           newRoleInput.value = "";
@@ -677,35 +700,28 @@
         const checked = Array.from(
           permissionChecklist.querySelectorAll("input:checked")
         ).map((input) => input.value);
-        const withParents = new Set(checked);
-
-        const addParentsForChecked = (node) => {
-          if (!node.children || !node.children.length) {
-            return withParents.has(node.key);
-          }
-          const childChecked = node.children.some((child) =>
-            addParentsForChecked(child)
-          );
-          if (childChecked) {
-            withParents.add(node.key);
-          }
-          return childChecked;
-        };
-
-        PERMISSION_GROUPS.forEach(addParentsForChecked);
         try {
           await window.assetTrackingApi.apiFetch(
             `/api/role-permissions/${encodeURIComponent(selectedRole)}`,
             {
               method: "PUT",
-              body: JSON.stringify({ permissions: Array.from(withParents) }),
+              body: JSON.stringify({ permissions: checked }),
             }
           );
           rolePermissions = rolePermissions || {};
-          rolePermissions[selectedRole] = Array.from(withParents);
+          rolePermissions[selectedRole] = checked;
           customRoles.add(selectedRole);
           updateRoleOptions();
+          if (rolePermissionsMessage) {
+            rolePermissionsMessage.textContent = "Permissions saved.";
+            rolePermissionsMessage.className = "form-message success";
+          }
         } catch (error) {
+          if (rolePermissionsMessage) {
+            rolePermissionsMessage.textContent =
+              error?.message || "Unable to save permissions.";
+            rolePermissionsMessage.className = "form-message error";
+          }
           return;
         }
         savePermissionsBtn.disabled = true;

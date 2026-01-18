@@ -81,15 +81,6 @@ const migratePermissions = (permissions = []) => {
     const mapped = LEGACY_PERMISSION_MAP[permission] || permission;
     normalized.add(mapped);
   });
-  Array.from(normalized).forEach((permission) => {
-    const parents = PARENT_MAP[permission] || [];
-    parents.forEach((parent) => normalized.add(parent));
-  });
-  if (normalized.has("phone_issuing")) {
-    normalized.add("phone_issuing_personal");
-    normalized.add("phone_issuing_shared");
-    normalized.add("phone_issuing_bulk");
-  }
   return Array.from(normalized);
 };
 
@@ -126,11 +117,12 @@ const getRolePermissions = async () => {
 const canAccess = async (role, permission) => {
   const rolePermissions = await getRolePermissions();
   const permissions = rolePermissions[role] || [];
-  if (!permissions.includes(permission)) {
-    return false;
+  if (permissions.includes(permission)) {
+    return true;
   }
-  const parents = PARENT_MAP[permission] || [];
-  return parents.every((parent) => permissions.includes(parent));
+  return permissions.some((granted) =>
+    (PARENT_MAP[granted] || []).includes(permission)
+  );
 };
 
 window.assetTrackingPermissions = {

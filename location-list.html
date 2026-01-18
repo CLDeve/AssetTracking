@@ -190,7 +190,11 @@
         const rolePermissions =
           (await window.assetTrackingPermissions?.resolve?.()) || {};
         const role = currentUser?.role;
-        const permissions = rolePermissions[role] || [];
+        const permissions = rolePermissions[role];
+        if (!permissions) {
+          activeIssueTypes = new Set();
+          return;
+        }
         const types = new Set();
         if (permissions.includes("phone_issuing_personal")) {
           types.add("personal");
@@ -198,7 +202,7 @@
         if (permissions.includes("phone_issuing_shared")) {
           types.add("shared");
         }
-        activeIssueTypes = types.size ? types : null;
+        activeIssueTypes = types;
       };
 
       const isTypeAllowed = (deviceType) => {
