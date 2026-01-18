@@ -148,6 +148,7 @@
       let devices = [];
       let holdings = [];
       let activeLocations = [];
+      let activeIssueTypes = null;
 
       const ensureAuth = () => {
         if (!window.assetTrackingApi?.getToken()) {
@@ -185,6 +186,27 @@
         activeLocations = parseLocations(currentUser?.location || "");
       };
 
+      const loadIssueTypes = async () => {
+        const rolePermissions =
+          (await window.assetTrackingPermissions?.resolve?.()) || {};
+        const role = currentUser?.role;
+        const permissions = rolePermissions[role] || [];
+        const types = new Set();
+        if (permissions.includes("phone_issuing_personal")) {
+          types.add("personal");
+        }
+        if (permissions.includes("phone_issuing_shared")) {
+          types.add("shared");
+        }
+        activeIssueTypes = types.size ? types : null;
+      };
+
+      const isTypeAllowed = (deviceType) => {
+        if (!activeIssueTypes) return true;
+        const normalized = String(deviceType || "").trim().toLowerCase();
+        return activeIssueTypes.has(normalized);
+      };
+
       const renderEmptyRow = (tbody, message, colspan) => {
         tbody.innerHTML = `
           <tr class="empty-row">
@@ -201,13 +223,15 @@
         const pending = devices.filter(
           (device) =>
             locationSet.has(device.device_location) &&
-            !holdingDeviceIds.has(String(device.device_id || ""))
+            !holdingDeviceIds.has(String(device.device_id || "")) &&
+            isTypeAllowed(device.device_type)
         );
 
         const withMe = holdings.filter(
           (hold) =>
             hold.user_id === activeUser?.id &&
-            locationSet.has(hold.location)
+            locationSet.has(hold.location) &&
+            isTypeAllowed(hold.device_type)
         );
 
         pendingBody.innerHTML = "";
@@ -355,7 +379,7 @@
         if (!ensureAuth()) return;
         await loadCurrentUser();
         loadUserLocations();
-        await Promise.all([loadDevices(), loadHoldings()]);
+        await Promise.all([loadDevices(), loadHoldings(), loadIssueTypes()]);
         if (!updateLocationHeader(currentUser)) {
           return;
         }
