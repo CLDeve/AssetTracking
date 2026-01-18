@@ -205,7 +205,9 @@
         );
 
         const withMe = holdings.filter(
-          (hold) => hold.user_id === activeUser?.id
+          (hold) =>
+            hold.user_id === activeUser?.id &&
+            locationSet.has(hold.location)
         );
 
         pendingBody.innerHTML = "";
